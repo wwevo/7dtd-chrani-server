@@ -62,7 +62,7 @@ while output:
         break
 
 print "<hr />"
-print "Command test - type '/ecv stop test' in chat or abort script."
+print "Command test"
 print "<hr />"
 
 output = tn.read_until(b"\r\n")
@@ -78,8 +78,8 @@ while output:
     if m:
         timestamp_now = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
         elapsed_time = timestamp_now - timestamp_start
-        if elapsed_time.seconds >= 5:
-            print "timeout"
+        if elapsed_time.seconds >= 15:
+            print "command '/ecv stop test' was not used in the last " + str(elapsed_time.seconds) + " seconds. Timeout!!!"
             break
     if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/ecv stop test", output) is not None:
         print(output)
