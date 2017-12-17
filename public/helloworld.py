@@ -1,11 +1,10 @@
-import web
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
-urls = ("/.*", "hello")
-app = web.application(urls, globals())
+# enable debugging
+import cgitb
+cgitb.enable()
 
-class hello:
-    def GET(self):
-        return 'Hello, world!'
-
-if __name__ == "__main__":
-    app.run()
+print "Content-Type: text/plain;charset=utf-8"
+print
+print "Hello World!"
