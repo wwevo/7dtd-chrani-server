@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import sys
 
 # enable debugging
 import cgitb
@@ -8,6 +9,9 @@ cgitb.enable()
 # going to make heavy use of telnet and regexp
 import telnetlib
 import re
+
+# needed for timeout-functions
+import datetime 
 
 # import variables
 # i like to kee them out of the way for the versioning system, a config file
@@ -57,15 +61,31 @@ while output:
         print(output)
         break
 
+print "<hr />"
+print "Command test - type '/ecv stop test' in chat or abort script."
+print "<hr />"
+
 output = tn.read_until(b"\r\n")
 while output:
-    if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/ecv stop test", output) is not None:
-        print(output)
-        print "test stopped"
+    m = re.search(r"^(.+?) (.+?) INF", output)
+    if m:
+        timestamp_start = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
         break
     output = tn.read_until(b"\r\n")
 
-print "</body>"
-print "</html>"
+while output:
+    m = re.search(r"^(.+?) (.+?) INF", output)
+    if m:
+        timestamp_now = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
+        elapsed_time = timestamp_now - timestamp_start
+        if elapsed_time.seconds >= 5:
+            print "timeout"
+            break
+    if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/ecv stop test", output) is not None:
+        print(output)
+        break
+    output = tn.read_until(b"\r\n")
 
 tn.close()
+print "</body>"
+print "</html>"
