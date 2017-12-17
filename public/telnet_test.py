@@ -10,7 +10,7 @@ import telnetlib
 import re
 
 # import variables
-# i like to kee them out of the way for the verioning system, a config file
+# i like to kee them out of the way for the versioning system, a config file
 # seems to be a sensible way
 import ConfigParser
 config = ConfigParser.ConfigParser()
@@ -56,6 +56,14 @@ while output:
     if re.match(r"Total of [\d]* keystones in the game", output) is not None:
         print(output)
         break
+
+output = tn.read_until(b"\r\n")
+while output:
+    if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/ecv stop test", output) is not None:
+        print(output)
+        print "test stopped"
+        break
+    output = tn.read_until(b"\r\n")
 
 print "</body>"
 print "</html>"
