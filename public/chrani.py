@@ -4,7 +4,7 @@
 import sys
 import telnetlib
 import re
-import datetime 
+import time 
 import ConfigParser
 
 # begin main code ^^
@@ -67,19 +67,20 @@ def loop():
         get a flowing timestamp going
         implement simple timeout function for debug and testing
         """
-        m = re.search(r"^(.+?) (.+?) INF", response)
-        if m:
-            latest_timestamp = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
-            if timeout_in_seconds != 0:
-                if timeout_start is None:
-                    timeout_start = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
-                elapsed_time = latest_timestamp - timeout_start
-                print elapsed_time
-                if elapsed_time.seconds >= timeout_in_seconds:
-                    tn.close()
-                    global_loop.set()
-                    player_poll.set()
-                    break
+        latest_timestamp = time.time()
+        if timeout_in_seconds != 0:
+            if timeout_start is None:
+                timeout_start = time.time()
+            elapsed_time = latest_timestamp - timeout_start
+            print elapsed_time
+            if elapsed_time >= timeout_in_seconds:
+                """
+                timeout occured. close the telnet, kill all threads, break the loop!
+                """
+                tn.close()
+                global_loop.set()
+                player_poll.set()
+                break
 
         # group(1) = datetime, group(2) = stardate?, group(3) = bot command
         m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/chrani (.+)", response)
