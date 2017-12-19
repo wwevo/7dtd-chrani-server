@@ -31,17 +31,19 @@ def list_players():
     last line from the games lp command, the one we are matching
     might change with a new game-version
     """
+    profile_timestamp_start = time.time()
     tn = telnetlib.Telnet(HOST, PORT)
     setup_telnet_connection(tn)
-
-    list_players_response_raw = ""
     response = None
+    list_players_response_raw = ""
+
     tn.write("lp" + b"\r\n")
     while list_players_response_raw == "" or response:
         response = tn.read_until(b"\r\n")
         list_players_response_raw = list_players_response_raw + response
 
         if re.match(r"Total of [\d]* in the game", response) is not None:
+            print time.time() - profile_timestamp_start
             return list_players_response_raw
 
 def loop():
@@ -51,7 +53,6 @@ def loop():
     """
     tn = telnetlib.Telnet(HOST, PORT)
     setup_telnet_connection(tn)
-
     global global_loop
     global player_poll
     timeout_start = None
@@ -59,7 +60,6 @@ def loop():
     timeout_in_seconds = 10
     response = None
     continued_telnet_log_raw = ""
-
     while continued_telnet_log_raw == "" or response:
         response = tn.read_until(b"\r\n")
         continued_telnet_log_raw = continued_telnet_log_raw + response
@@ -72,7 +72,7 @@ def loop():
             if timeout_start is None:
                 timeout_start = time.time()
             elapsed_time = latest_timestamp - timeout_start
-            print elapsed_time
+            # print elapsed_time
             if elapsed_time >= timeout_in_seconds:
                 """
                 timeout occured. close the telnet, kill all threads, break the loop!
@@ -101,9 +101,12 @@ class PollPlayers(Thread):
         self.stopped = event
 
     def run(self):
+        """
+        need to find a way to substract the runtime of last list_players from
+        the wait time
+        """
         while not self.stopped.wait(2):
             print list_players()
-            # call a function
 
 class GlobalLoop(Thread):
     def __init__(self, event):
