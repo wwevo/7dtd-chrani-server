@@ -14,7 +14,7 @@ from pprint import pprint
 # seems to be a sensible way
 config = ConfigParser.ConfigParser()
 config.read("../private/passwords.txt")
-bot_suffix = "_chrani"
+bot_suffix = "_hoop"
 HOST = config.get("telnet" + bot_suffix, "telnet_host")
 PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
@@ -25,6 +25,37 @@ def setup_telnet_connection(tn):
     tn.write(PASS.encode('ascii') + b"\r\n")
     # last 'welcome' line from the games telnet. it might change with a new game-version
     return tn.read_until("Press 'exit' to end session.")
+
+send_message_tn = None
+def send_message(message):
+    global send_message_tn
+    if send_message_tn is None:
+        send_message_tn = telnetlib.Telnet(HOST, PORT)
+        setup_telnet_connection(send_message_tn)
+    response = None
+    send_message_response_raw = ""
+
+    send_message_tn.write("say \"" + message + b"\"\r\n")
+    while send_message_response_raw == "" or response:
+        response = send_message_tn.read_until(b"\r\n")
+        send_message_response_raw = send_message_response_raw + response
+
+        if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + message + "\r", response) is not None:
+            return send_message_response_raw
+
+from  threading import Thread, Event
+class PollPlayers(Thread):
+    def __init__(self, event):
+        Thread.__init__(self)
+        self.stopped = event
+
+    def run(self):
+        """
+        need to find a way to substract the runtime of last list_players from
+        the wait time
+        """
+        while not self.stopped.wait(2):
+            list_players()
 
 list_players_tn = None
 def list_players():
@@ -97,28 +128,13 @@ def loop():
         if m:
             command = m.group(3)
             if command == "stop test":
-                print "test stopped!"
+                send_message(command + " received")
             elif command == "say something nice":
-                print "something nice!"
+                send_message("something nice")
             elif command == "say something bad":
-                print "something bad!"
+                send_message("something bad")
             else:
-                print "unknown command: "
-                pprint(command)
-
-from  threading import Thread, Event
-class PollPlayers(Thread):
-    def __init__(self, event):
-        Thread.__init__(self)
-        self.stopped = event
-
-    def run(self):
-        """
-        need to find a way to substract the runtime of last list_players from
-        the wait time
-        """
-        while not self.stopped.wait(2):
-            list_players()
+                send_message(command + " is unknown to me")
 
 class GlobalLoop(Thread):
     def __init__(self, event):
@@ -126,7 +142,8 @@ class GlobalLoop(Thread):
         self.stopped = event
 
     def run(self):
-            loop()
+        loop()
+
 
 class StorePlayerList(Thread):
     def __init__(self, event):
@@ -134,7 +151,9 @@ class StorePlayerList(Thread):
         self.stopped = event
 
     def run(self):
-            print "stored!"
+        return
+        # send_message("stored")
+
 
 global_loop = Event()
 global_loop_thread = GlobalLoop(global_loop)
