@@ -79,13 +79,13 @@ def loop():
                     tn.close()
                     global_loop.set()
                     player_poll.set()
-                    return continued_telnet_log_raw
+                    break
 
         # group(1) = datetime, group(2) = stardate?, group(3) = bot command
         m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/chrani (.+)", response)
         if m:
             if m.group(3) == "stop test":
-                return("test stopped!" + "<br />")
+                print "test stopped!"
             elif m.group(3) == "say something nice":
                 print "something nice!" + "<br />"
             elif m.group(3) == "say something bad":
@@ -110,7 +110,6 @@ class GlobalLoop(Thread):
         self.stopped = event
 
     def run(self):
-#        while not self.stopped.wait(1):
             loop()
 
 global_loop = Event()
