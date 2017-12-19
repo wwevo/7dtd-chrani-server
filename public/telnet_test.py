@@ -2,10 +2,6 @@
 # -*- coding: UTF-8 -*-
 import sys
 
-# enable debugging
-import cgitb
-cgitb.enable()
-
 # going to make heavy use of telnet and regexp
 import telnetlib
 import re
@@ -43,8 +39,6 @@ HOST = config.get("telnet", "telnet_host")
 PORT = config.get("telnet", "telnet_port")
 PASS = config.get("telnet", "telnet_pass")
 
-print "Content-type:text/html\r\n\r\n"
-
 tn = telnetlib.Telnet(HOST, PORT)
 # this is the exact prompt from the games telnet. it might change with a new game-version
 tn.read_until("Please enter password:")
@@ -53,8 +47,6 @@ tn.write(PASS.encode('ascii') + b"\r\n")
 line = tn.read_until("Press 'exit' to end session.")
 
 # doing an output just for testing. the final script will not have a web interface
-print "<html>"
-print "<body>"
 print(line)
 print "<hr />"
 print "Players"
@@ -115,5 +107,3 @@ while output:
     output = tn.read_until(b"\r\n")
 
 tn.close()
-print "</body>"
-print "</html>"
