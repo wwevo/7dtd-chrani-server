@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-# enable debugging
-import cgitb
-cgitb.enable()
 # imports
 import sys
 import telnetlib
@@ -19,9 +16,8 @@ config.read("../private/passwords.txt")
 HOST = config.get("telnet", "telnet_host")
 PORT = config.get("telnet", "telnet_port")
 PASS = config.get("telnet", "telnet_pass")
-tn = telnetlib.Telnet(HOST, PORT)
 
-def setup_telnet_connection():
+def setup_telnet_connection(tn):
     # this is the exact prompt from the games telnet. it might change with a new game-version
     password_prompt = tn.read_until("Please enter password:")
     tn.write(PASS.encode('ascii') + b"\r\n")
@@ -35,6 +31,9 @@ def list_players():
     last line from the games lp command, the one we are matching
     might change with a new game-version
     """
+    tn = telnetlib.Telnet(HOST, PORT)
+    setup_telnet_connection(tn)
+
     list_players_response_raw = ""
     response = None
     tn.write("lp" + b"\r\n")
@@ -44,16 +43,20 @@ def list_players():
 
         if re.match(r"Total of [\d]* in the game", response) is not None:
             return list_players_response_raw
-            break
 
 def loop():
     """
     don't even know where to begin
     I'm throwing everything in here I can think of
     """
+    tn = telnetlib.Telnet(HOST, PORT)
+    setup_telnet_connection(tn)
+
+    global global_loop
+    global player_poll
     timeout_start = None
     latest_timestamp = None
-    timeout_in_seconds = 5
+    timeout_in_seconds = 10
     response = None
     continued_telnet_log_raw = ""
 
@@ -71,7 +74,11 @@ def loop():
                 if timeout_start is None:
                     timeout_start = datetime.datetime.strptime(m.group(1), "%Y-%m-%dT%H:%M:%S")
                 elapsed_time = latest_timestamp - timeout_start
+                print elapsed_time
                 if elapsed_time.seconds >= timeout_in_seconds:
+                    tn.close()
+                    global_loop.set()
+                    player_poll.set()
                     return continued_telnet_log_raw
 
         # group(1) = datetime, group(2) = stardate?, group(3) = bot command
@@ -86,19 +93,31 @@ def loop():
             else:
                 print response + "<br />"
 
-welcome_message_raw = setup_telnet_connection()
-list_players_response_raw = list_players()
-continued_telnet_log_raw = loop();
-tn.close()
+from  threading import Thread, Event
+class PollPlayers(Thread):
+    def __init__(self, event):
+        Thread.__init__(self)
+        self.stopped = event
 
-# doing an output just for testing. the final script will not have a web interface
-print "Content-type:text/html\r\n\r\n"
-print "<html>"
-print "<body>"
-print welcome_message_raw
-print list_players_response_raw
-print continued_telnet_log_raw
-print "</body>"
-print "</html>"
+    def run(self):
+        while not self.stopped.wait(2):
+            print list_players()
+            # call a function
 
+class GlobalLoop(Thread):
+    def __init__(self, event):
+        Thread.__init__(self)
+        self.stopped = event
+
+    def run(self):
+#        while not self.stopped.wait(1):
+            loop()
+
+global_loop = Event()
+global_loop_thread = GlobalLoop(global_loop)
+global_loop_thread.start()
+
+player_poll = Event()
+player_poll_thread = PollPlayers(player_poll)
+player_poll_thread.start()
 
