@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 # imports
-import sys
 import telnetlib
 import re
 import time 
-import ConfigParser
-from pprint import pprint
+import ConfigParser # only needed for fancy config import
 
 # begin main code ^^
 # import config options
@@ -20,6 +18,11 @@ PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
 
 def setup_telnet_connection(tn):
+    """
+    for now, until i know better, i want each part of this bot using
+    their own telnet. i'm not actually sure if it works that way, but it seems
+    like it ^^
+    """
     # this is the exact prompt from the games telnet. it might change with a new game-version
     password_prompt = tn.read_until("Please enter password:")
     tn.write(PASS.encode('ascii') + b"\r\n")
@@ -45,121 +48,140 @@ def send_message(message):
 
 from  threading import Thread, Event
 class PollPlayers(Thread):
+    class StorePlayerList(Thread):
+        def __init__(self, event):
+            Thread.__init__(self)
+            self.stopped = event
+
+        def run(self):
+            self.db_store_player_list()
+            self.stopped.set()
+
+        def db_store_player_list(self):
+            """
+            this will come later
+            for now we can do it in memory
+            """
+            #print "player list stored"
+            return
+
+    poll_frequency = 2
+    list_players_tn = None
+    list_players_response_time = 0 # record the runtime of the entire poll
+
     def __init__(self, event):
         Thread.__init__(self)
         self.stopped = event
+
+    def __del__(self):
+        if self.list_players_tn: self.list_players_tn.close()
+
 
     def run(self):
         """
         recorded the runtime of the poll, using it to calculate the exact wait
         time between executions
         """
-        global list_players_response_time
-        poll_frequency = 2
-        next_poll = poll_frequency;
+        next_poll = self.poll_frequency;
         while not self.stopped.wait(next_poll):
-            next_poll = 2 - list_players_response_time
+            """
+            basically an endless loop
+            fresh playerdata is about the most important thing for this bot :)
+            """
+            next_poll = 2 - self.list_players_response_time
             print next_poll
-            list_players()
+            self.list_players()
 
-list_players_tn = None
-list_players_response_time = 0 # record the runtime of the entire poll
-def list_players():
-    """
-    fetches the response of the games telnet 'lp' command
-    (lp = list players)
-    last line from the games lp command, the one we are matching
-    might change with a new game-version
-    """
-    profile_timestamp_start = time.time()
-    global list_players_tn
-    global list_players_response_time
-    if list_players_tn is None:
-        list_players_tn = telnetlib.Telnet(HOST, PORT)
-        setup_telnet_connection(list_players_tn)
-    response = None
-    list_players_response_raw = ""
-    list_players_tn.write("lp" + b"\r\n")
-    while list_players_response_raw == "" or response:
-        response = list_players_tn.read_until(b"\r\n")
-        list_players_response_raw = list_players_response_raw + response
+            store_player_list = Event()
+            store_player_list_thread = self.StorePlayerList(store_player_list)
+            store_player_list_thread.start()
 
-        if re.match(r"Total of [\d]* in the game", response) is not None:
-            list_players_response_time = time.time() - profile_timestamp_start
-            # print "players polled"
-            return list_players_response_raw
-
-loop_tn = None
-def loop():
-    """
-    don't even know where to begin
-    I'm throwing everything in here I can think of
-    """
-    global loop_tn
-    global global_loop
-    global player_poll
-    if loop_tn is None:
-        loop_tn = telnetlib.Telnet(HOST, PORT)
-        setup_telnet_connection(loop_tn)
-    timeout_start = None
-    latest_timestamp = None
-    timeout_in_seconds = 0
-    response = None
-    continued_telnet_log_raw = ""
-    while continued_telnet_log_raw == "" or response:
-        response = loop_tn.read_until(b"\r\n")
-        continued_telnet_log_raw = continued_telnet_log_raw + response
+    def list_players(self):
         """
-        get a flowing timestamp going
-        implement simple timeout function for debug and testing
+        fetches the response of the games telnet 'lp' command
+        (lp = list players)
+        last line from the games lp command, the one we are matching,
+        might change with a new game-version
         """
-        latest_timestamp = time.time()
-        if timeout_in_seconds != 0:
-            if timeout_start is None:
-                timeout_start = time.time()
-            elapsed_time = latest_timestamp - timeout_start
-            # print elapsed_time
-            if elapsed_time >= timeout_in_seconds:
-                """
-                timeout occured. close the telnet, kill all threads, break the loop!
-                """
-                list_players_tn.close()
-                loop_tn.close()
-                global_loop.set()
-                player_poll.set()
-                break
+        profile_timestamp_start = time.time()
+        if self.list_players_tn is None:
+            self.list_players_tn = telnetlib.Telnet(HOST, PORT)
+            setup_telnet_connection(self.list_players_tn)
+        response = None
+        list_players_response_raw = ""
+        self.list_players_tn.write("lp" + b"\r\n")
+        while list_players_response_raw == "" or response:
+            response = self.list_players_tn.read_until(b"\r\n")
+            list_players_response_raw = list_players_response_raw + response
 
-        # group(1) = datetime, group(2) = stardate?, group(3) = bot command
-        m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/chrani (.+)\r", response)
-        if m:
-            command = m.group(3)
-            if command == "stop test":
-                send_message(command + " received")
-            elif command == "say something nice":
-                send_message("something nice")
-            elif command == "say something bad":
-                send_message("something bad")
-            else:
-                send_message(command + " is unknown to me")
+            if re.match(r"Total of [\d]* in the game", response) is not None:
+                self.list_players_response_time = time.time() - profile_timestamp_start
+                # print "players polled"
+                return list_players_response_raw
 
 class GlobalLoop(Thread):
+    loop_tn = None
+    timeout_in_seconds = 10
+
     def __init__(self, event):
         Thread.__init__(self)
         self.stopped = event
 
-    def run(self):
-        loop()
-
-
-class StorePlayerList(Thread):
-    def __init__(self, event):
-        Thread.__init__(self)
-        self.stopped = event
+    def __del__(self):
+        if self.loop_tn: self.loop_tn.close()
 
     def run(self):
-        return
-        # send_message("stored")
+        self.loop()
+        self.stopped.set()
 
+    def loop(self):
+        """
+        don't even know where to begin
+        I'm throwing everything in here I can think of
+        """
+        global player_poll
+        if self.loop_tn is None:
+            self.loop_tn = telnetlib.Telnet(HOST, PORT)
+            setup_telnet_connection(self.loop_tn)
+
+        timeout_start = None
+        latest_timestamp = None
+        response = None
+        continued_telnet_log_raw = ""
+        while continued_telnet_log_raw == "" or response:
+            response = self.loop_tn.read_until(b"\r\n")
+            continued_telnet_log_raw = continued_telnet_log_raw + response
+            """
+            get a flowing timestamp going
+            implement simple timeout function for debug and testing
+            """
+            latest_timestamp = time.time()
+            if self.timeout_in_seconds != 0:
+                if timeout_start is None:
+                    timeout_start = time.time()
+                elapsed_time = latest_timestamp - timeout_start
+                # print elapsed_time
+                if elapsed_time >= self.timeout_in_seconds:
+                    """
+                    timeout occured. close the telnet, kill all threads, break the loop!
+                    no idea if this is really neccessary...
+                    """
+                    player_poll.set()
+                    if send_message_tn: send_message_tn.close()
+                    break
+
+            # group(1) = datetime, group(2) = stardate?, group(3) = bot command
+            m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/chrani (.+)\r", response)
+            if m:
+                command = m.group(3)
+                if command == "stop test":
+                    send_message(command + " received")
+                elif command == "say something nice":
+                    send_message("something nice")
+                elif command == "say something bad":
+                    send_message("something bad")
+                else:
+                    send_message(command + " is unknown to me")
 
 global_loop = Event()
 global_loop_thread = GlobalLoop(global_loop)
@@ -168,8 +190,4 @@ global_loop_thread.start()
 player_poll = Event()
 player_poll_thread = PollPlayers(player_poll)
 player_poll_thread.start()
-
-store_player_list = Event()
-store_player_list_thread = StorePlayerList(store_player_list)
-store_player_list_thread.start()
 
