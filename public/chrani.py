@@ -147,10 +147,8 @@ class GlobalLoop(Thread):
         timeout_start = None
         latest_timestamp = None
         response = None
-        continued_telnet_log_raw = ""
-        while continued_telnet_log_raw == "" or response:
-            response = self.loop_tn.read_until(b"\r\n")
-            continued_telnet_log_raw = continued_telnet_log_raw + response
+        while response is None or response:
+            response = self.loop_tn.read_until(b"\r\n", 5)
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
