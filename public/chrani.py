@@ -4,6 +4,7 @@
 import telnetlib
 import re
 import time 
+import math
 import ConfigParser # only needed for fancy config import
 
 # begin main code ^^
@@ -12,7 +13,7 @@ import ConfigParser # only needed for fancy config import
 # seems to be a sensible way
 config = ConfigParser.ConfigParser()
 config.read("../private/passwords.txt")
-bot_suffix = "_chrani"
+bot_suffix = "_hoop"
 HOST = config.get("telnet" + bot_suffix, "telnet_host")
 PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
@@ -46,6 +47,30 @@ def send_message(message):
         if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + message + "\r", response) is not None:
             return send_message_response_raw
 
+
+
+def fun(d, mime_type):
+    reverse_linked_q = list()
+    reverse_linked_q.append((list(), d))
+    while reverse_linked_q:
+        this_key_chain, this_v = reverse_linked_q.pop()
+        # finish search if found the mime type
+        if this_v == mime_type:
+            return this_key_chain
+        # not found. keep searching
+        # queue dicts for checking / ignore anything that's not a dict
+        try:
+            items = this_v.items()
+        except AttributeError:
+            continue  # this was not a nested dict. ignore it
+        for k, v in items:
+            reverse_linked_q.append((this_key_chain + [k], v))
+    # if we haven't returned by this point, we've exhausted all the contents
+    raise KeyError
+
+playerlist = {}
+playerhomes = {}
+
 from  threading import Thread, Event
 class PollPlayers(Thread):
     class StorePlayerList(Thread):
@@ -69,9 +94,12 @@ class PollPlayers(Thread):
             this will come later
             for now we can do it in memory
             """
+            global playerlist
             list_players_dict = self.ConvertRawPlayerdata(list_players_raw)
-            print list_players_dict
-            #print "player list stored"
+            playerlist.update(list_players_dict)
+            print playerlist
+            # print list_players_dict
+            # print "player list stored"
             return
 
         def ConvertRawPlayerdata(self, list_players_raw):
@@ -141,7 +169,7 @@ class PollPlayers(Thread):
 
 class GlobalLoop(Thread):
     loop_tn = None
-    timeout_in_seconds = 10
+    timeout_in_seconds = 0
 
     def __init__(self, event):
         Thread.__init__(self)
@@ -159,7 +187,9 @@ class GlobalLoop(Thread):
         don't even know where to begin
         I'm throwing everything in here I can think of
         """
+        global playerlist
         global player_poll
+        global playerhomes
         if self.loop_tn is None:
             self.loop_tn = telnetlib.Telnet(HOST, PORT)
             setup_telnet_connection(self.loop_tn)
@@ -189,17 +219,31 @@ class GlobalLoop(Thread):
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
-            m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/(.+)\r", response)
+            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\':.* \/(.+)\r", response)
             if m:
-                command = m.group(3)
-                if command == "stop test":
-                    send_message(command + " received")
-                elif command == "say something nice":
-                    send_message("something nice")
-                elif command == "say something bad":
-                    send_message("something bad")
+                player = m.group(3)
+                command = m.group(4)
+                steamid = fun(playerlist, player)[0]
+                if command == "make this my home":
+                    homeX = playerlist[steamid]['pos']['x']
+                    homeY = playerlist[steamid]['pos']['y']
+                    homeZ = playerlist[steamid]['pos']['z']
+                    playerhomes[steamid] = {}
+                    playerhomes[steamid]['homePos'] = {}
+                    playerhomes[steamid]['homePos']['x'] = homeX
+                    playerhomes[steamid]['homePos']['y'] = homeY
+                    playerhomes[steamid]['homePos']['z'] = homeZ
+                    send_message(player + " has decided to settle down")
+                elif command == "take me home":
+                    homeX = int(float(playerhomes[steamid]['homePos']['x']))
+                    homeY = int(float(playerhomes[steamid]['homePos']['y']))
+                    homeZ = int(float(playerhomes[steamid]['homePos']['z']))
+                    teleport_command = "teleportplayer " + steamid + " " + str(homeX) + " " + str(homeY) + " " + str(homeZ) + "\r\n"
+                    print teleport_command
+                    self.loop_tn.write(teleport_command)
+                    send_message(player + " got homesick")
                 else:
-                    send_message(command + " is unknown to me")
+                    send_message("the command '" + command + "' is unknown to me")
 
 global_loop = Event()
 global_loop_thread = GlobalLoop(global_loop)
