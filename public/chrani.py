@@ -181,9 +181,11 @@ class GlobalLoop(Thread):
                 else:
                     send_message(command + " is unknown to me")
 
-global_loop_thread = GlobalLoop(Event())
+global_loop = Event()
+global_loop_thread = GlobalLoop(global_loop)
 global_loop_thread.start()
 
-player_poll_thread = PollPlayers(Event())
+player_poll = Event()
+player_poll_thread = PollPlayers(player_poll)
 player_poll_thread.start()
 
