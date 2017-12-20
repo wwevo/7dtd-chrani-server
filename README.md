@@ -28,7 +28,8 @@ Listen to chat commands (*The main loop*)
     and listen to chat-commands
     simplest of bots imaginable, could be used as an echo-bot
     or for really simple server-wide notifications
-
+    for now we have the '/make this my home' command and the
+    'take me home' command. you can guess what they do ^^
 
 The player-poll
 
