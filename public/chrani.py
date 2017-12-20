@@ -51,13 +51,19 @@ class PollPlayers(Thread):
 
     def run(self):
         """
-        need to find a way to substract the runtime of last list_players from
-        the wait time
+        recorded the runtime of the poll, using it to calculate the exact wait
+        time between executions
         """
-        while not self.stopped.wait(2):
+        global list_players_response_time
+        poll_frequency = 2
+        next_poll = poll_frequency;
+        while not self.stopped.wait(next_poll):
+            next_poll = 2 - list_players_response_time
+            print next_poll
             list_players()
 
 list_players_tn = None
+list_players_response_time = 0 # record the runtime of the entire poll
 def list_players():
     """
     fetches the response of the games telnet 'lp' command
@@ -67,19 +73,19 @@ def list_players():
     """
     profile_timestamp_start = time.time()
     global list_players_tn
+    global list_players_response_time
     if list_players_tn is None:
         list_players_tn = telnetlib.Telnet(HOST, PORT)
         setup_telnet_connection(list_players_tn)
     response = None
     list_players_response_raw = ""
-
     list_players_tn.write("lp" + b"\r\n")
     while list_players_response_raw == "" or response:
         response = list_players_tn.read_until(b"\r\n")
         list_players_response_raw = list_players_response_raw + response
 
         if re.match(r"Total of [\d]* in the game", response) is not None:
-            # print time.time() - profile_timestamp_start
+            list_players_response_time = time.time() - profile_timestamp_start
             # print "players polled"
             return list_players_response_raw
 
