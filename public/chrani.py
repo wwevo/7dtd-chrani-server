@@ -12,7 +12,7 @@ import ConfigParser # only needed for fancy config import
 # seems to be a sensible way
 config = ConfigParser.ConfigParser()
 config.read("../private/passwords.txt")
-bot_suffix = "_hoop"
+bot_suffix = "_chrani"
 HOST = config.get("telnet" + bot_suffix, "telnet_host")
 PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
@@ -49,21 +49,41 @@ def send_message(message):
 from  threading import Thread, Event
 class PollPlayers(Thread):
     class StorePlayerList(Thread):
-        def __init__(self, event):
+        """
+        I've put this in here cause it's never gonna be needed
+        outside of PollPlayers.
+        """
+        list_players_raw = None
+        list_players_array = None
+        def __init__(self, event, list_players_raw):
             Thread.__init__(self)
             self.stopped = event
+            self.list_players_raw = list_players_raw
 
         def run(self):
-            self.db_store_player_list()
+            self.db_store_player_list(self.list_players_raw)
             self.stopped.set()
 
-        def db_store_player_list(self):
+        def db_store_player_list(self, list_players_raw):
             """
             this will come later
             for now we can do it in memory
             """
+            list_players_dict = self.ConvertRawPlayerdata(list_players_raw)
+            print list_players_dict
             #print "player list stored"
             return
+
+        def ConvertRawPlayerdata(self, list_players_raw):
+            list_players_dict = {}
+            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
+            for m in re.finditer(playerlines_regexp, list_players_raw):
+                """
+                m.group(16) = steamid
+                """
+                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2), "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)}, "rot": {"1": m.group(6), "2": m.group(6), "3": m.group(6)}, "remote": m.group(9), "health": m.group(10), "deaths": m.group(11), "zombies": m.group(12), "players": m.group(13), "score": m.group(14), "level": m.group(15), "steamid": m.group(16), "ip": m.group(17), "ping": m.group(18)}
+
+            return list_players_dict
 
     poll_frequency = 2
     list_players_tn = None
@@ -75,7 +95,6 @@ class PollPlayers(Thread):
 
     def __del__(self):
         if self.list_players_tn: self.list_players_tn.close()
-
 
     def run(self):
         """
@@ -89,11 +108,11 @@ class PollPlayers(Thread):
             fresh playerdata is about the most important thing for this bot :)
             """
             next_poll = 2 - self.list_players_response_time
-            print next_poll
-            self.list_players()
+            # print next_poll
+            list_players_raw = self.list_players()
 
             store_player_list = Event()
-            store_player_list_thread = self.StorePlayerList(store_player_list)
+            store_player_list_thread = self.StorePlayerList(store_player_list, list_players_raw)
             store_player_list_thread.start()
 
     def list_players(self):
@@ -117,6 +136,7 @@ class PollPlayers(Thread):
             if re.match(r"Total of [\d]* in the game", response) is not None:
                 self.list_players_response_time = time.time() - profile_timestamp_start
                 # print "players polled"
+                #print list_players_response_raw
                 return list_players_response_raw
 
 class GlobalLoop(Thread):
@@ -169,7 +189,7 @@ class GlobalLoop(Thread):
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
-            m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/chrani (.+)\r", response)
+            m = re.search(r"^(.+?) (.+?) INF Chat: \'.*\':.* \/(.+)\r", response)
             if m:
                 command = m.group(3)
                 if command == "stop test":
