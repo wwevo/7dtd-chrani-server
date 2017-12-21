@@ -133,20 +133,17 @@ class PollPlayers(Thread):
             basically an endless loop
             fresh playerdata is about the most important thing for this bot :)
             """
-            next_poll = 2 - self.list_players_response_time
+            next_poll = self.poll_frequency - self.list_players_response_time
             # print next_poll
-            list_players_raw = self.loop()
+            list_players_raw = self.poll_players()
 
             store_player_list_event = Event()
             store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw)
             store_player_list_thread.start()
 
-    def loop(self):
+    def poll_players(self):
         """
-        fetches the response of the games telnet 'lp' command
-        (lp = list players)
-        last line from the games lp command, the one we are matching,
-        might change with a new game-version
+        
         """
         profile_timestamp_start = time.time()
         if self.list_players_tn is None:
@@ -156,6 +153,12 @@ class PollPlayers(Thread):
         list_players_response_raw = ""
         self.list_players_tn.write("lp" + b"\r\n")
         while list_players_response_raw == "" or response:
+            """
+            fetches the response of the games telnet 'lp' command
+            (lp = list players)
+            last line from the games lp command, the one we are matching,
+            might change with a new game-version
+            """
             response = self.list_players_tn.read_until(b"\r\n")
             list_players_response_raw = list_players_response_raw + response
 
@@ -175,10 +178,6 @@ class GlobalLoop(Thread):
         if self.loop_tn: self.loop_tn.close()
 
     def run(self):
-        self.loop()
-        self.stopped.set()
-
-    def loop(self):
         """
         don't even know where to begin
         I'm throwing everything in here I can think of
@@ -198,7 +197,7 @@ class GlobalLoop(Thread):
         latest_timestamp = None
         response = None
         while response is None or response:
-            response = self.loop_tn.read_until(b"\r\n", 5)
+            response = self.loop_tn.read_until(b"\r\n", 2)
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
@@ -213,8 +212,9 @@ class GlobalLoop(Thread):
                     """
                     no idea if this is really neccessary...
                     don't know where to close the thread otherwise
+                    if statement, cause the eventit might not be present
                     """
-                    player_poll_loop_event.set()
+                    if player_poll_loop_event is not None: player_poll_loop_event.set()
                     if send_message_tn: send_message_tn.close()
                     break
 
@@ -244,6 +244,13 @@ class GlobalLoop(Thread):
                     send_message(player + " got homesick")
                 else:
                     send_message("the command '" + command + "' is unknown to me...")
+            else:
+                """
+                only way I have found so far to keep the loop running after the
+                initial read_until timeouts
+                """
+                response = None
+        self.stopped.set()
 
 global_loop_event = Event()
 global_loop_thread = GlobalLoop(global_loop_event)
