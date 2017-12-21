@@ -73,7 +73,11 @@ playerhomes = {}
 
 from  threading import Thread, Event
 class PollPlayers(Thread):
-    class StorePlayerList(Thread):
+    poll_frequency = 2
+    list_players_tn = None
+    list_players_response_time = 0 # record the runtime of the entire poll
+
+    class PlayerList(Thread):
         """
         I've put this in here cause it's never gonna be needed
         outside of PollPlayers.
@@ -86,23 +90,21 @@ class PollPlayers(Thread):
             self.list_players_raw = list_players_raw
 
         def run(self):
-            self.db_store_player_list(self.list_players_raw)
+            self.save(self.list_players_raw)
             self.stopped.set()
 
-        def db_store_player_list(self, list_players_raw):
+        def save(self, list_players_raw):
             """
             this will come later
             for now we can do it in memory
             """
             global playerlist
-            list_players_dict = self.ConvertRawPlayerdata(list_players_raw)
+            list_players_dict = self.convert_raw_playerdata(list_players_raw)
             playerlist.update(list_players_dict)
             print playerlist
-            # print list_players_dict
-            # print "player list stored"
             return
 
-        def ConvertRawPlayerdata(self, list_players_raw):
+        def convert_raw_playerdata(self, list_players_raw):
             list_players_dict = {}
             playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
             for m in re.finditer(playerlines_regexp, list_players_raw):
@@ -112,10 +114,6 @@ class PollPlayers(Thread):
                 list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2), "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)}, "rot": {"1": m.group(6), "2": m.group(6), "3": m.group(6)}, "remote": m.group(9), "health": m.group(10), "deaths": m.group(11), "zombies": m.group(12), "players": m.group(13), "score": m.group(14), "level": m.group(15), "steamid": m.group(16), "ip": m.group(17), "ping": m.group(18)}
 
             return list_players_dict
-
-    poll_frequency = 2
-    list_players_tn = None
-    list_players_response_time = 0 # record the runtime of the entire poll
 
     def __init__(self, event):
         Thread.__init__(self)
@@ -137,13 +135,13 @@ class PollPlayers(Thread):
             """
             next_poll = 2 - self.list_players_response_time
             # print next_poll
-            list_players_raw = self.list_players()
+            list_players_raw = self.loop()
 
-            store_player_list = Event()
-            store_player_list_thread = self.StorePlayerList(store_player_list, list_players_raw)
+            store_player_list_event = Event()
+            store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw)
             store_player_list_thread.start()
 
-    def list_players(self):
+    def loop(self):
         """
         fetches the response of the games telnet 'lp' command
         (lp = list players)
@@ -154,7 +152,7 @@ class PollPlayers(Thread):
         if self.list_players_tn is None:
             self.list_players_tn = telnetlib.Telnet(HOST, PORT)
             setup_telnet_connection(self.list_players_tn)
-        response = None
+
         list_players_response_raw = ""
         self.list_players_tn.write("lp" + b"\r\n")
         while list_players_response_raw == "" or response:
@@ -163,8 +161,6 @@ class PollPlayers(Thread):
 
             if re.match(r"Total of [\d]* in the game", response) is not None:
                 self.list_players_response_time = time.time() - profile_timestamp_start
-                # print "players polled"
-                #print list_players_response_raw
                 return list_players_response_raw
 
 class GlobalLoop(Thread):
@@ -186,9 +182,13 @@ class GlobalLoop(Thread):
         """
         don't even know where to begin
         I'm throwing everything in here I can think of
+        the plan is to have this loop execute periodically to scan for new
+        telnet-lines issued by the game. for now I will hardcode most things,
+        eventually all functions should be modules that can dynamically link
+        into the loop somehow
         """
-        global playerlist
-        global player_poll
+        global player_poll_loop_event # only in here so I can close it. I'm sure there is a better place somewhere
+        global playerlist # contains current playerdata
         global playerhomes
         if self.loop_tn is None:
             self.loop_tn = telnetlib.Telnet(HOST, PORT)
@@ -214,7 +214,7 @@ class GlobalLoop(Thread):
                     no idea if this is really neccessary...
                     don't know where to close the thread otherwise
                     """
-                    player_poll.set()
+                    player_poll_loop_event.set()
                     if send_message_tn: send_message_tn.close()
                     break
 
@@ -243,13 +243,13 @@ class GlobalLoop(Thread):
                     self.loop_tn.write(teleport_command)
                     send_message(player + " got homesick")
                 else:
-                    send_message("the command '" + command + "' is unknown to me")
+                    send_message("the command '" + command + "' is unknown to me...")
 
-global_loop = Event()
-global_loop_thread = GlobalLoop(global_loop)
+global_loop_event = Event()
+global_loop_thread = GlobalLoop(global_loop_event)
 global_loop_thread.start()
 
-player_poll = Event()
-player_poll_thread = PollPlayers(player_poll)
-player_poll_thread.start()
+player_poll_loop_event = Event()
+player_poll_loop_thread = PollPlayers(player_poll_loop_event)
+player_poll_loop_thread.start()
 
