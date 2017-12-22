@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 # imports
+import pickle
 import telnetlib
 import re
 import time
-import math
 import ConfigParser  # only needed for fancy config import
 
 # begin main code ^^
@@ -13,7 +13,7 @@ import ConfigParser  # only needed for fancy config import
 # seems to be a sensible way
 config = ConfigParser.ConfigParser()
 config.read("../private/passwords.txt")
-bot_suffix = "_hoop"
+bot_suffix = "_chrani"
 HOST = config.get("telnet" + bot_suffix, "telnet_host")
 PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
@@ -110,9 +110,13 @@ class PollPlayers(Thread):
             players.update(list_players_dict)
             return
 
-        def convert_raw_playerdata(self, list_players_raw):
+        @staticmethod
+        def convert_raw_playerdata(list_players_raw):
             list_players_dict = {}
-            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
+            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), " \
+                                 r"rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), " \
+                                 r"deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), " \
+                                 r"steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n* "
             for m in re.finditer(playerlines_regexp, list_players_raw):
                 """
                 m.group(16) = steamid
@@ -139,13 +143,13 @@ class PollPlayers(Thread):
         recorded the runtime of the poll, using it to calculate the exact wait
         time between executions
         """
-        next_poll = 0;
+        next_poll = self.poll_frequency;
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
             fresh playerdata is about the most important thing for this bot :)
             """
-            next_poll = self.poll_frequency - self.list_players_response_time
+            next_poll = 0 - self.list_players_response_time
             # print next_poll
             list_players_raw = self.poll_players()
             print "poll playerdata loop is alive"
@@ -179,6 +183,30 @@ class PollPlayers(Thread):
                 self.list_players_response_time = time.time() - profile_timestamp_start
                 return list_players_response_raw
 
+class DataStorage(Thread):
+    poll_frequency = 10
+
+    def __init__(self, event):
+        Thread.__init__(self)
+        self.stopped = event
+
+    def run(self):
+        """
+        recorded the runtime of the poll, using it to calculate the exact wait
+        time between executions
+        """
+        next_poll = 0
+        global players
+        global player_locations
+        while not self.stopped.wait(next_poll):
+            next_poll = self.poll_frequency
+            if players:
+                with open('players.dict', 'rb') as handle:
+                    players = pickle.loads(handle.read())
+            else:
+                with open('players.dict', 'wb') as handle:
+                    pickle.dump(players, handle)
+
 
 class GlobalLoop(Thread):
     loop_tn = None
@@ -203,6 +231,10 @@ class GlobalLoop(Thread):
         player_poll_loop_event = Event()
         player_poll_loop_thread = PollPlayers(player_poll_loop_event)
         player_poll_loop_thread.start()
+
+        data_storage_loop_event = Event()
+        data_storage_loop_thread = DataStorage(data_storage_loop_event)
+        data_storage_loop_thread.start()
 
         global players  # contains current playerdata
         global player_locations
