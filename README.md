@@ -30,6 +30,8 @@ Listen to chat commands (*The main loop*)
     or for really simple server-wide notifications
     for now we have the '/make this my home' command and the
     'take me home' command. you can guess what they do ^^
+    I have added a very experimental lobby and password check
+    to get you out of the lobby again
 
 The player-poll
 
@@ -38,5 +40,7 @@ The player-poll
     or just in memory, if we don't want to get fancy. 
 
 together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting and setting up a homezone
+
+this code has almost NO exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for a public server.
 
 code-base is tested on 100% vanilla server and one with Coppis + Botman. Not tested with any other mods.
