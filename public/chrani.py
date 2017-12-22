@@ -69,7 +69,7 @@ def fun(d, mime_type):
     raise KeyError
 
 playerlist = {}
-playerhomes = {}
+playerlocations = {}
 
 from  threading import Thread, Event
 class PollPlayers(Thread):
@@ -101,7 +101,6 @@ class PollPlayers(Thread):
             global playerlist
             list_players_dict = self.convert_raw_playerdata(list_players_raw)
             playerlist.update(list_players_dict)
-            print playerlist
             return
 
         def convert_raw_playerdata(self, list_players_raw):
@@ -127,7 +126,7 @@ class PollPlayers(Thread):
         recorded the runtime of the poll, using it to calculate the exact wait
         time between executions
         """
-        next_poll = self.poll_frequency;
+        next_poll = 0;
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
@@ -136,6 +135,7 @@ class PollPlayers(Thread):
             next_poll = self.poll_frequency - self.list_players_response_time
             # print next_poll
             list_players_raw = self.poll_players()
+            print "poll playerdata loop is alive"
 
             store_player_list_event = Event()
             store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw)
@@ -186,18 +186,21 @@ class GlobalLoop(Thread):
         eventually all functions should be modules that can dynamically link
         into the loop somehow
         """
-        global player_poll_loop_event # only in here so I can close it. I'm sure there is a better place somewhere
+        player_poll_loop_event = Event()
+        player_poll_loop_thread = PollPlayers(player_poll_loop_event)
+        player_poll_loop_thread.start()
+
         global playerlist # contains current playerdata
-        global playerhomes
+        global playerlocations
         if self.loop_tn is None:
             self.loop_tn = telnetlib.Telnet(HOST, PORT)
             setup_telnet_connection(self.loop_tn)
 
         timeout_start = None
-        latest_timestamp = None
-        response = None
-        while response is None or response:
+        while not self.stopped.wait(0.5):
             response = self.loop_tn.read_until(b"\r\n", 2)
+            # print "global loop is alive"
+            # print response
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
@@ -219,7 +222,8 @@ class GlobalLoop(Thread):
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
-            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\':.* \/(.+)\r", response)
+            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': \/(.+)\r", response)
+            # match specific chat messages
             if m:
                 player = m.group(3)
                 command = m.group(4)
@@ -228,35 +232,56 @@ class GlobalLoop(Thread):
                     homeX = playerlist[steamid]['pos']['x']
                     homeY = playerlist[steamid]['pos']['y']
                     homeZ = playerlist[steamid]['pos']['z']
-                    playerhomes[steamid] = {}
-                    playerhomes[steamid]['homePos'] = {}
-                    playerhomes[steamid]['homePos']['x'] = homeX
-                    playerhomes[steamid]['homePos']['y'] = homeY
-                    playerhomes[steamid]['homePos']['z'] = homeZ
-                    send_message(player + " has decided to settle down")
+                    playerlocations[steamid] = {}
+                    playerlocations[steamid]['homePos'] = {}
+                    playerlocations[steamid]['homePos']['x'] = homeX
+                    playerlocations[steamid]['homePos']['y'] = homeY
+                    playerlocations[steamid]['homePos']['z'] = homeZ
+                    send_message(player + " has decided to settle down!")
                 elif command == "take me home":
-                    homeX = int(float(playerhomes[steamid]['homePos']['x']))
-                    homeY = int(float(playerhomes[steamid]['homePos']['y']))
-                    homeZ = int(float(playerhomes[steamid]['homePos']['z']))
+                    homeX = int(float(playerlocations[steamid]['homePos']['x']))
+                    homeY = int(float(playerlocations[steamid]['homePos']['y']))
+                    homeZ = int(float(playerlocations[steamid]['homePos']['z']))
                     teleport_command = "teleportplayer " + steamid + " " + str(homeX) + " " + str(homeY) + " " + str(homeZ) + "\r\n"
-                    print teleport_command
+                    #print teleport_command
                     self.loop_tn.write(teleport_command)
                     send_message(player + " got homesick")
+                elif command.startswith("password "):
+                    p = re.search(r"password (.+)", command)
+                    if p:
+                        password = p.group(1)
+                        print response
+                        if password == "letmein":
+                            print "correct password!!"
+                            spawnX = int(float(playerlocations[steamid]['spawnPos']['x']))
+                            spawnY = int(float(playerlocations[steamid]['spawnPos']['y']))
+                            spawnZ = int(float(playerlocations[steamid]['spawnPos']['z']))
+                            teleport_command = "teleportplayer " + steamid + " " + str(spawnX) + " " + str(spawnY) + " " + str(spawnZ) + "\r\n"
+                            print teleport_command
+                            self.loop_tn.write(teleport_command)
                 else:
                     send_message("the command '" + command + "' is unknown to me...")
-            else:
-                """
-                only way I have found so far to keep the loop running after the
-                initial read_until timeouts
-                """
-                response = None
+            m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
+            if m:
+                player = m.group(3)
+                steamid = fun(playerlist, player)[0]
+                homeX = playerlist[steamid]['pos']['x']
+                homeY = playerlist[steamid]['pos']['y']
+                homeZ = playerlist[steamid]['pos']['z']
+                playerlocations[steamid] = {}
+                playerlocations[steamid]['spawnPos'] = {}
+                playerlocations[steamid]['spawnPos']['x'] = homeX
+                playerlocations[steamid]['spawnPos']['y'] = homeY
+                playerlocations[steamid]['spawnPos']['z'] = homeZ
+                send_message("this servers bot says Hi to " + player + " o/")
+                send_message("your ass will be ported to our safe-zone until you have entered the password")
+                send_message("enter the password with /password <password> in chat")
+                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
+                print teleport_command
+                self.loop_tn.write(teleport_command)
         self.stopped.set()
 
 global_loop_event = Event()
 global_loop_thread = GlobalLoop(global_loop_event)
 global_loop_thread.start()
-
-player_poll_loop_event = Event()
-player_poll_loop_thread = PollPlayers(player_poll_loop_event)
-player_poll_loop_thread.start()
 
