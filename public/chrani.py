@@ -258,7 +258,7 @@ class GlobalLoop(Thread):
                             spawnZ = int(float(playerlocations[steamid]['spawnPos']['z']))
                             teleport_command = "teleportplayer " + steamid + " " + str(spawnX) + " " + str(spawnY) + " " + str(spawnZ) + "\r\n"
                             print teleport_command
-                            self.loop_tn.write(teleport_command)
+                            # self.loop_tn.write(teleport_command)
                 else:
                     send_message("the command '" + command + "' is unknown to me...")
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
@@ -274,11 +274,11 @@ class GlobalLoop(Thread):
                 playerlocations[steamid]['spawnPos']['y'] = homeY
                 playerlocations[steamid]['spawnPos']['z'] = homeZ
                 send_message("this servers bot says Hi to " + player + " o/")
-                send_message("your ass will be ported to our safe-zone until you have entered the password")
-                send_message("enter the password with /password <password> in chat")
+                # send_message("your ass will be ported to our safe-zone until you have entered the password")
+                # send_message("enter the password with /password <password> in chat")
                 teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
                 print teleport_command
-                self.loop_tn.write(teleport_command)
+                # self.loop_tn.write(teleport_command)
         self.stopped.set()
 
 global_loop_event = Event()
