@@ -112,18 +112,21 @@ class PollPlayers(Thread):
 
         def convert_raw_playerdata(self, list_players_raw):
             list_players_dict = {}
-            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
+            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), " \
+                                 r"rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), " \
+                                 r"deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), " \
+                                 r"steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n* "
             for m in re.finditer(playerlines_regexp, list_players_raw):
                 """
                 m.group(16) = steamid
                 """
-                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2),
-                                                  "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)},
-                                                  "rot": {"1": m.group(6), "2": m.group(6), "3": m.group(6)},
-                                                  "remote": m.group(9), "health": m.group(10), "deaths": m.group(11),
-                                                  "zombies": m.group(12), "players": m.group(13), "score": m.group(14),
-                                                  "level": m.group(15), "steamid": m.group(16), "ip": m.group(17),
-                                                  "ping": m.group(18)}
+                list_players_dict[m.group(16)] = dict(id=m.group(1), name=m.group(2),
+                                                      pos={"x": m.group(3), "y": m.group(4), "z": m.group(5)},
+                                                      rot={"1": m.group(6), "2": m.group(6), "3": m.group(6)},
+                                                      remote=m.group(9), health=m.group(10), deaths=m.group(11),
+                                                      zombies=m.group(12), players=m.group(13), score=m.group(14),
+                                                      level=m.group(15), steamid=m.group(16), ip=m.group(17),
+                                                      ping=m.group(18))
 
             return list_players_dict
 
@@ -147,7 +150,8 @@ class PollPlayers(Thread):
             """
             next_poll = self.poll_frequency - self.list_players_response_time
             list_players_raw = self.poll_players()
-            print "player-data poll is active (" + str(len(list_players_raw)) + " bytes received, response-time: " + str(round(self.list_players_response_time, 3)).ljust(5, '0') + " seconds)"
+            print "player-data poll is active ({0} bytes received, response-time: {1} seconds)".format(
+                str(len(list_players_raw)), str(round(self.list_players_response_time, 3)).ljust(5, '0'))
             # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
             # actual server-transaction won't be delayed
             store_player_list_event = Event()
@@ -215,7 +219,7 @@ class ChatObserverLoop(Thread):
         timeout_start = None
         while not self.stopped.wait(1):
             response = self.loop_tn.read_until(b"\r\n", 2)
-            print "chat-observer is alive (" + str(len(response)) + " bytes received"
+            print "chat-observer is alive (" + str(len(response)) + " bytes received)"
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
