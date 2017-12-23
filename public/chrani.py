@@ -4,7 +4,6 @@
 import telnetlib
 import re
 import time 
-import math
 import ConfigParser # only needed for fancy config import
 
 # begin main code ^^
