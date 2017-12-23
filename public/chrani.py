@@ -149,7 +149,7 @@ class PollPlayers(Thread):
             basically an endless loop
             fresh playerdata is about the most important thing for this bot :)
             """
-            next_poll = 0 - self.list_players_response_time
+            next_poll = self.poll_frequency - self.list_players_response_time
             # print next_poll
             list_players_raw = self.poll_players()
             print "poll playerdata loop is alive"
