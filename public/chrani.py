@@ -3,8 +3,8 @@
 # imports
 import telnetlib
 import re
-import time 
-import ConfigParser # only needed for fancy config import
+import time
+import ConfigParser  # only needed for fancy config import
 
 # begin main code ^^
 # import config options
@@ -16,6 +16,7 @@ bot_suffix = "_hoop"
 HOST = config.get("telnet" + bot_suffix, "telnet_host")
 PORT = config.get("telnet" + bot_suffix, "telnet_port")
 PASS = config.get("telnet" + bot_suffix, "telnet_pass")
+
 
 def setup_telnet_connection(tn):
     """
@@ -29,7 +30,10 @@ def setup_telnet_connection(tn):
     # last 'welcome' line from the games telnet. it might change with a new game-version
     return tn.read_until("Press 'exit' to end session.")
 
+
 send_message_tn = None
+
+
 def send_message(message):
     global send_message_tn
     if send_message_tn is None:
@@ -47,8 +51,7 @@ def send_message(message):
             return send_message_response_raw
 
 
-
-def fun(d, mime_type):
+def get_dict_key_by_value(d, mime_type):
     reverse_linked_q = list()
     reverse_linked_q.append((list(), d))
     while reverse_linked_q:
@@ -67,14 +70,17 @@ def fun(d, mime_type):
     # if we haven't returned by this point, we've exhausted all the contents
     raise KeyError
 
-playerlist = {}
-playerlocations = {}
 
-from  threading import Thread, Event
+players = {}
+locations = {}
+
+from threading import Thread, Event
+
+
 class PollPlayers(Thread):
     poll_frequency = 2
     list_players_tn = None
-    list_players_response_time = 0 # record the runtime of the entire poll
+    list_players_response_time = 0  # record the runtime of the entire poll
 
     class PlayerList(Thread):
         """
@@ -83,6 +89,7 @@ class PollPlayers(Thread):
         """
         list_players_raw = None
         list_players_array = None
+
         def __init__(self, event, list_players_raw):
             Thread.__init__(self)
             self.stopped = event
@@ -97,9 +104,10 @@ class PollPlayers(Thread):
             this will come later
             for now we can do it in memory
             """
-            global playerlist
+            global players
             list_players_dict = self.convert_raw_playerdata(list_players_raw)
-            playerlist.update(list_players_dict)
+            players.update(list_players_dict)
+            # print players
             return
 
         def convert_raw_playerdata(self, list_players_raw):
@@ -109,7 +117,13 @@ class PollPlayers(Thread):
                 """
                 m.group(16) = steamid
                 """
-                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2), "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)}, "rot": {"1": m.group(6), "2": m.group(6), "3": m.group(6)}, "remote": m.group(9), "health": m.group(10), "deaths": m.group(11), "zombies": m.group(12), "players": m.group(13), "score": m.group(14), "level": m.group(15), "steamid": m.group(16), "ip": m.group(17), "ping": m.group(18)}
+                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2),
+                                                  "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)},
+                                                  "rot": {"1": m.group(6), "2": m.group(6), "3": m.group(6)},
+                                                  "remote": m.group(9), "health": m.group(10), "deaths": m.group(11),
+                                                  "zombies": m.group(12), "players": m.group(13), "score": m.group(14),
+                                                  "level": m.group(15), "steamid": m.group(16), "ip": m.group(17),
+                                                  "ping": m.group(18)}
 
             return list_players_dict
 
@@ -129,13 +143,13 @@ class PollPlayers(Thread):
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
-            fresh playerdata is about the most important thing for this bot :)
+            fresh player-data is about the most important thing for this bot :)
             """
             next_poll = self.poll_frequency - self.list_players_response_time
-            # print next_poll
             list_players_raw = self.poll_players()
-            print "poll playerdata loop is alive"
-
+            print "player-data poll is active (" + str(len(list_players_raw)) + " bytes received, response-time: " + str(round(self.list_players_response_time, 3)).ljust(5, '0') + " seconds)"
+            # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
+            # actual server-transaction won't be delayed
             store_player_list_event = Event()
             store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw)
             store_player_list_thread.start()
@@ -165,7 +179,11 @@ class PollPlayers(Thread):
                 self.list_players_response_time = time.time() - profile_timestamp_start
                 return list_players_response_raw
 
-class GlobalLoop(Thread):
+
+class ChatObserverLoop(Thread):
+    """
+    Only mandatory function for the bot!
+    """
     loop_tn = None
     timeout_in_seconds = 0
 
@@ -178,7 +196,6 @@ class GlobalLoop(Thread):
 
     def run(self):
         """
-        don't even know where to begin
         I'm throwing everything in here I can think of
         the plan is to have this loop execute periodically to scan for new
         telnet-lines issued by the game. for now I will hardcode most things,
@@ -189,17 +206,16 @@ class GlobalLoop(Thread):
         player_poll_loop_thread = PollPlayers(player_poll_loop_event)
         player_poll_loop_thread.start()
 
-        global playerlist # contains current playerdata
-        global playerlocations
+        global players  # contains current playerdata
+        global locations
         if self.loop_tn is None:
             self.loop_tn = telnetlib.Telnet(HOST, PORT)
             setup_telnet_connection(self.loop_tn)
 
         timeout_start = None
-        while not self.stopped.wait(0.5):
+        while not self.stopped.wait(1):
             response = self.loop_tn.read_until(b"\r\n", 2)
-            # print "global loop is alive"
-            # print response
+            print "chat-observer is alive (" + str(len(response)) + " bytes received"
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
@@ -226,23 +242,24 @@ class GlobalLoop(Thread):
             if m:
                 player = m.group(3)
                 command = m.group(4)
-                steamid = fun(playerlist, player)[0]
+                steamid = get_dict_key_by_value(players, player)[0]
                 if command == "make this my home":
-                    homeX = playerlist[steamid]['pos']['x']
-                    homeY = playerlist[steamid]['pos']['y']
-                    homeZ = playerlist[steamid]['pos']['z']
-                    playerlocations[steamid] = {}
-                    playerlocations[steamid]['homePos'] = {}
-                    playerlocations[steamid]['homePos']['x'] = homeX
-                    playerlocations[steamid]['homePos']['y'] = homeY
-                    playerlocations[steamid]['homePos']['z'] = homeZ
+                    home_x = players[steamid]['pos']['x']
+                    home_y = players[steamid]['pos']['y']
+                    home_z = players[steamid]['pos']['z']
+                    locations[steamid] = {}
+                    locations[steamid]['homePos'] = {}
+                    locations[steamid]['homePos']['x'] = home_x
+                    locations[steamid]['homePos']['y'] = home_y
+                    locations[steamid]['homePos']['z'] = home_z
                     send_message(player + " has decided to settle down!")
                 elif command == "take me home":
-                    homeX = int(float(playerlocations[steamid]['homePos']['x']))
-                    homeY = int(float(playerlocations[steamid]['homePos']['y']))
-                    homeZ = int(float(playerlocations[steamid]['homePos']['z']))
-                    teleport_command = "teleportplayer " + steamid + " " + str(homeX) + " " + str(homeY) + " " + str(homeZ) + "\r\n"
-                    #print teleport_command
+                    home_x = int(float(locations[steamid]['homePos']['x']))
+                    home_y = int(float(locations[steamid]['homePos']['y']))
+                    home_z = int(float(locations[steamid]['homePos']['z']))
+                    teleport_command = "teleportplayer " + steamid + " " + str(home_x) + " " + str(home_y) + " " + str(
+                        home_z) + "\r\n"
+                    # print teleport_command
                     self.loop_tn.write(teleport_command)
                     send_message(player + " got homesick")
                 elif command.startswith("password "):
@@ -252,10 +269,11 @@ class GlobalLoop(Thread):
                         print response
                         if password == "letmein":
                             print "correct password!!"
-                            spawnX = int(float(playerlocations[steamid]['spawnPos']['x']))
-                            spawnY = int(float(playerlocations[steamid]['spawnPos']['y']))
-                            spawnZ = int(float(playerlocations[steamid]['spawnPos']['z']))
-                            teleport_command = "teleportplayer " + steamid + " " + str(spawnX) + " " + str(spawnY) + " " + str(spawnZ) + "\r\n"
+                            spawn_x = int(float(locations[steamid]['spawnPos']['x']))
+                            spawn_y = int(float(locations[steamid]['spawnPos']['y']))
+                            spawn_z = int(float(locations[steamid]['spawnPos']['z']))
+                            teleport_command = "teleportplayer " + steamid + " " + str(spawn_x) + " " + str(
+                                spawn_y) + " " + str(spawn_z) + "\r\n"
                             print teleport_command
                             # self.loop_tn.write(teleport_command)
                 else:
@@ -263,24 +281,25 @@ class GlobalLoop(Thread):
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
             if m:
                 player = m.group(3)
-                steamid = fun(playerlist, player)[0]
-                homeX = playerlist[steamid]['pos']['x']
-                homeY = playerlist[steamid]['pos']['y']
-                homeZ = playerlist[steamid]['pos']['z']
-                playerlocations[steamid] = {}
-                playerlocations[steamid]['spawnPos'] = {}
-                playerlocations[steamid]['spawnPos']['x'] = homeX
-                playerlocations[steamid]['spawnPos']['y'] = homeY
-                playerlocations[steamid]['spawnPos']['z'] = homeZ
+                steamid = get_dict_key_by_value(players, player)[0]
+                home_x = players[steamid]['pos']['x']
+                home_y = players[steamid]['pos']['y']
+                home_z = players[steamid]['pos']['z']
+                locations[steamid] = {}
+                locations[steamid]['spawnPos'] = {}
+                locations[steamid]['spawnPos']['x'] = home_x
+                locations[steamid]['spawnPos']['y'] = home_y
+                locations[steamid]['spawnPos']['z'] = home_z
                 send_message("this servers bot says Hi to " + player + " o/")
                 # send_message("your ass will be ported to our safe-zone until you have entered the password")
                 # send_message("enter the password with /password <password> in chat")
-                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
+                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(
+                    154) + "\r\n"
                 print teleport_command
                 # self.loop_tn.write(teleport_command)
         self.stopped.set()
 
-global_loop_event = Event()
-global_loop_thread = GlobalLoop(global_loop_event)
-global_loop_thread.start()
 
+global_loop_event = Event()
+global_loop_thread = ChatObserverLoop(global_loop_event)
+global_loop_thread.start()
