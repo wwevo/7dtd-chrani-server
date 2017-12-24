@@ -22,6 +22,7 @@ PASS = config.get("telnet_" + bot_suffix, "telnet_pass")
 
 RabaConfiguration('chrani_server', '../private/db/' + bot_suffix + '.db')
 
+
 class Player(R.Raba):
     _raba_namespace = 'chrani_server'
 
@@ -43,6 +44,7 @@ class Player(R.Raba):
     steamid = rf.Primitive()
     ip = rf.Primitive()
     ping = rf.Primitive()
+    authenticated = rf.Primitive()
 
     def __init__(self):
         pass
@@ -60,6 +62,7 @@ class Location(R.Raba):
     def __init__(self):
         pass
 
+
 def setup_telnet_connection(tn):
     """
     for now, until i know better, i want each part of this bot using
@@ -73,48 +76,28 @@ def setup_telnet_connection(tn):
     return tn.read_until("Press 'exit' to end session.")
 
 
-send_message_tn = None
+class TelnetCommand:
+    send_message_tn = None
 
+    def __init__(self):
+        if self.send_message_tn is None:
+            self.send_message_tn = telnetlib.Telnet(HOST, PORT)
+            setup_telnet_connection(self.send_message_tn)
 
-def send_message(message):
-    global send_message_tn
-    if send_message_tn is None:
-        send_message_tn = telnetlib.Telnet(HOST, PORT)
-        setup_telnet_connection(send_message_tn)
-    response = None
-    send_message_response_raw = ""
+    def __del__(self):
+        if self.send_message_tn: self.send_message_tn.close()
 
-    send_message_tn.write("say \"" + message + b"\"\r\n")
-    while send_message_response_raw == "" or response:
-        response = send_message_tn.read_until(b"\r\n")
-        send_message_response_raw = send_message_response_raw + response
+    def send_message(self, message):
+        response = None
+        send_message_response_raw = ""
 
-        if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + message + "\r", response) is not None:
-            return send_message_response_raw
+        self.send_message_tn.write("say \"" + message + b"\"\r\n")
+        while send_message_response_raw == "" or response:
+            response = self.send_message_tn.read_until(b"\r\n")
+            send_message_response_raw = send_message_response_raw + response
 
-
-def get_dict_key_by_value(d, mime_type):
-    reverse_linked_q = list()
-    reverse_linked_q.append((list(), d))
-    while reverse_linked_q:
-        this_key_chain, this_v = reverse_linked_q.pop()
-        # finish search if found the mime type
-        if this_v == mime_type:
-            return this_key_chain
-        # not found. keep searching
-        # queue dicts for checking / ignore anything that's not a dict
-        try:
-            items = this_v.items()
-        except AttributeError:
-            continue  # this was not a nested dict. ignore it
-        for k, v in items:
-            reverse_linked_q.append((this_key_chain + [k], v))
-    # if we haven't returned by this point, we've exhausted all the contents
-    raise KeyError
-
-
-players = {}
-locations = {}
+            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + message + "\r", response) is not None:
+                return send_message_response_raw
 
 
 class PollPlayers(Thread):
@@ -136,21 +119,10 @@ class PollPlayers(Thread):
             self.list_players_raw = list_players_raw
 
         def run(self):
-            self.raba_save(self.list_players_raw)
+            self.update(self.list_players_raw)
             self.stopped.set()
 
-        def save(self, list_players_raw):
-            """
-            this will come later
-            for now we can do it in memory
-            """
-            global players
-            list_players_dict = self.convert_raw_playerdata(list_players_raw)
-            players.update(list_players_dict)
-            # print players
-            return
-
-        def raba_save(self, list_players_raw):
+        def update(self, list_players_raw):
             player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
             for m in re.finditer(player_line_regexp, list_players_raw):
                 """
@@ -180,17 +152,6 @@ class PollPlayers(Thread):
                 player.ip = m.group(17)
                 player.ping = m.group(18)
                 player.save()
-
-        def convert_raw_playerdata(self, list_players_raw):
-            list_players_dict = {}
-            player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
-            for m in re.finditer(player_line_regexp, list_players_raw):
-                """
-                m.group(16) = steamid
-                """
-                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2), "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)}, "rot": {"x": m.group(6), "y": m.group(6), "z": m.group(6)}, "remote": m.group(9), "health": m.group(10), "deaths": m.group(11), "zombies": m.group(12), "players": m.group(13), "score": m.group(14), "level": m.group(15), "steamid": m.group(16), "ip": m.group(17), "ping": m.group(18)}
-
-            return list_players_dict
 
     def __init__(self, event):
         Thread.__init__(self)
@@ -222,7 +183,9 @@ class PollPlayers(Thread):
 
     def poll_players(self):
         """
-        
+        polls live player data from the games telnet
+        times the action to allow for more accurate wait time
+        returns complete telnet output and playercount
         """
         profile_timestamp_start = time.time()
         if self.list_players_tn is None:
@@ -256,6 +219,9 @@ class ChatObserverLoop(Thread):
     timeout_in_seconds = 0
 
     def __init__(self, event):
+        if self.loop_tn is None:
+            self.loop_tn = telnetlib.Telnet(HOST, PORT)
+            setup_telnet_connection(self.loop_tn)
         Thread.__init__(self)
         self.stopped = event
 
@@ -274,12 +240,7 @@ class ChatObserverLoop(Thread):
         player_poll_loop_thread = PollPlayers(player_poll_loop_event)
         player_poll_loop_thread.start()
 
-        global players  # contains current playerdata
-        global locations
-        if self.loop_tn is None:
-            self.loop_tn = telnetlib.Telnet(HOST, PORT)
-            setup_telnet_connection(self.loop_tn)
-
+        tn_cmd = TelnetCommand()
         print "bot is ready and listening"
         timeout_start = None
         while not self.stopped.wait(1):
@@ -304,8 +265,6 @@ class ChatObserverLoop(Thread):
                     """
                     print "scheduled timeout occured after {0} seconds".format(str(int(elapsed_time)))
                     if player_poll_loop_event is not None: player_poll_loop_event.set()
-                    if send_message_tn: send_message_tn.close()
-
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
@@ -330,16 +289,20 @@ class ChatObserverLoop(Thread):
                     location.pos_z = player.pos_z
                     location.save()
 
-                    send_message(player_name + " has decided to settle down!")
+                    tn_cmd.send_message(player_name + " has decided to settle down!")
                 elif command == "take me home":
-                    location = Location(owner = player, name = 'home')
-                    pos_x = location.pos_x
-                    pos_y = location.pos_y
-                    pos_z = location.pos_z
-                    teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                    # print teleport_command
-                    self.loop_tn.write(teleport_command)
-                    send_message(player_name + " got homesick")
+                    try:
+                        location = Location(owner = player, name = 'home')
+                        pos_x = location.pos_x
+                        pos_y = location.pos_y
+                        pos_z = location.pos_z
+                        teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(
+                            int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                        # print teleport_command
+                        self.loop_tn.write(teleport_command)
+                        tn_cmd.send_message(player_name + " got homesick")
+                    except KeyError:
+                        tn_cmd.send_message(player_name + " is apparently homeless...")
                 elif command.startswith("password "):
                     p = re.search(r"password (.+)", command)
                     if p:
@@ -347,37 +310,51 @@ class ChatObserverLoop(Thread):
                         print response
                         if password == "openup":
                             print "correct password!!"
-                            location = Location(owner=player, name='spawn')
-                            pos_x = location.pos_x
-                            pos_y = location.pos_y
-                            pos_z = location.pos_z
-                            teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                            print teleport_command
-                            # self.loop_tn.write(teleport_command)
-                            send_message(player_name + " joined the ranks of literate people. Welcome!")
+                            if player.authenticated:
+                                tn_cmd.send_message(player_name + ", did you think we forgot you already? ")
+                            else:
+                                try:
+                                    location = Location(owner=player, name='spawn')
+                                    player.authenticated = True
+                                    pos_x = location.pos_x
+                                    pos_y = location.pos_y
+                                    pos_z = location.pos_z
+                                    teleport_command = "teleportplayer " + steamid + " " + str(
+                                        int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(
+                                        int(float(pos_z))) + "\r\n"
+                                    print teleport_command
+                                    # self.loop_tn.write(teleport_command)
+                                    tn_cmd.send_message(player_name + " joined the ranks of literate people. Welcome!")
+                                except KeyError:
+                                    tn_cmd.send_message(player_name + " has no place of origin it seems")
+                        else:
+                            tn_cmd.send_message(player_name + " has entered a wrong password oO!")
                 else:
-                    send_message("the command '" + command + "' is unknown to me...")
+                    tn_cmd.send_message("the command '" + command + "' is unknown to me...")
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
             if m:
                 player_name = m.group(3)
                 player = Player(name = player_name)
                 steamid = player.steamid
 
-                location = Location()
-                location.name = 'spawn'
-                location.owner = player
+                try:
+                    location = Location(owner=player, name='spawn')
+                    tn_cmd.send_message("Welcome back " + player_name + " o/")
+                except KeyError:
+                    location = Location()
+                    location.name = 'spawn'
+                    location.owner = player
+                    location.pos_x = player.pos_x
+                    location.pos_y = player.pos_y
+                    location.pos_z = player.pos_z
+                    location.save()
+                    tn_cmd.send_message("this servers bot says Hi to " + player_name + " o/")
+                    # send_message("your ass will be ported to our safe-zone until you have entered the password")
+                    # send_message("enter the password with /password <password> in chat")
+                    teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
+                    print teleport_command
+                    # self.loop_tn.write(teleport_command)
 
-                location.pos_x = player.pos_x
-                location.pos_y = player.pos_y
-                location.pos_z = player.pos_z
-
-                location.save()
-                send_message("this servers bot says Hi to " + player_name + " o/")
-                # send_message("your ass will be ported to our safe-zone until you have entered the password")
-                # send_message("enter the password with /password <password> in chat")
-                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
-                print teleport_command
-                # self.loop_tn.write(teleport_command)
         self.stopped.set()
 
 
