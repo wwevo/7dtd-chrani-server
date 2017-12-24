@@ -77,26 +77,42 @@ def setup_telnet_connection(tn):
 
 
 class TelnetCommand:
-    send_message_tn = None
+    command_tn = None
 
     def __init__(self):
-        if self.send_message_tn is None:
-            self.send_message_tn = telnetlib.Telnet(HOST, PORT)
-            setup_telnet_connection(self.send_message_tn)
+        while self.command_tn is None:
+            try:
+                self.command_tn = telnetlib.Telnet(HOST, PORT)
+                self.authenticate(self.command_tn)
+            except Exception, err:
+                time.sleep(4)
 
     def __del__(self):
-        if self.send_message_tn: self.send_message_tn.close()
+        if self.command_tn: self.command_tn.close()
+
+    @staticmethod
+    def authenticate(connection):
+        """
+        for now, until i know better, i want each part of this bot using
+        their own telnet. i'm not actually sure if it works that way, but it seems
+        like it ^^
+        """
+        # this is the exact prompt from the games telnet. it might change with a new game-version
+        password_prompt = connection.read_until("Please enter password:")
+        connection.write(PASS.encode('ascii') + b"\r\n")
+        # last 'welcome' line from the games telnet. it might change with a new game-version
+        return connection.read_until("Press 'exit' to end session.")
 
     def send_message(self, message):
         response = None
         send_message_response_raw = ""
 
-        self.send_message_tn.write("say \"" + message + b"\"\r\n")
+        self.command_tn.write("say \"" + message + b"\"\r\n")
         while send_message_response_raw == "" or response:
-            response = self.send_message_tn.read_until(b"\r\n")
+            response = self.command_tn.read_until(b"\r\n")
             send_message_response_raw = send_message_response_raw + response
 
-            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + message + "\r", response) is not None:
+            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(message) + "\r", response) is not None:
                 return send_message_response_raw
 
 
@@ -154,6 +170,13 @@ class PollPlayers(Thread):
                 player.save()
 
     def __init__(self, event):
+        while self.list_players_tn is None:
+            try:
+                self.list_players_tn = telnetlib.Telnet(HOST, PORT)
+                TelnetCommand.authenticate(self.list_players_tn)
+            except Exception, err:
+                time.sleep(4)
+
         Thread.__init__(self)
         self.stopped = event
 
@@ -188,9 +211,6 @@ class PollPlayers(Thread):
         returns complete telnet output and player count
         """
         profile_timestamp_start = time.time()
-        if self.list_players_tn is None:
-            self.list_players_tn = telnetlib.Telnet(HOST, PORT)
-            setup_telnet_connection(self.list_players_tn)
 
         list_players_response_raw = ""
         self.list_players_tn.write("lp" + b"\r\n")
@@ -219,14 +239,20 @@ class ChatObserverLoop(Thread):
     timeout_in_seconds = 0
 
     def __init__(self, event):
-        if self.loop_tn is None:
-            self.loop_tn = telnetlib.Telnet(HOST, PORT)
-            setup_telnet_connection(self.loop_tn)
+        while self.loop_tn is None:
+            try:
+                self.loop_tn = telnetlib.Telnet(HOST, PORT)
+                TelnetCommand.authenticate(self.loop_tn)
+            except Exception, err:
+                print "could not connect to the games telnet"
+                time.sleep(4)
+
         Thread.__init__(self)
         self.stopped = event
 
     def __del__(self):
-        if self.loop_tn: self.loop_tn.close()
+        if self.loop_tn:
+            self.loop_tn.close()
 
     def run(self):
         """
@@ -340,7 +366,7 @@ class ChatObserverLoop(Thread):
                         else:
                             tn_cmd.send_message(player_name + " has entered a wrong password oO!")
                 else:
-                    tn_cmd.send_message("the command '" + command + "' is unknown to me...")
+                    tn_cmd.send_message("the command '" + command + "' is unknown to me :)")
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
             if m:
                 player_name = m.group(3)
