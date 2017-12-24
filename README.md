@@ -1,16 +1,24 @@
 # 7dtd-chrani-server
 
-noob-coded python bot to control a 7 Days to Die gameserver.
+**noob-coded python bot to control a 7 Days to Die game-server**
 
-installation should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create a passwords.txt file to configure your server. that shuld be it really 
+installation should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create
+a passwords.txt file to configure your server, create a folder somewhere for the database. that should be it really 
 
-so even if this is not really useful at the moment, it might be a starting point for noob coders like me :)
+this is in no way a fully functional bot. it's a work in progress. let's call it Early Access ^^
 
-I will try to get this thing modular as much as possible, always depending on my current knowledge. the plan is to really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello to new players it should only do things required to accomplish exactly that.
+I will try to get this thing modular as much as possible, always depending on my current knowledge. the plan is to
+really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
+to new players it should only do things required to accomplish exactly that.
 
-this is my very first project with python, apart from the Hello World example, so a lot of stuff might take a lot of time for me, and I will not always hit the best methods of doing things I'm sure. feel free to comment on my code or even helping out with stuff.
+*this is my very first project with python*, apart from the Hello World example, so a lot of stuff might take a lot of
+time for me, and I will not always hit the best methods of doing things I'm sure. feel free to comment on my code or
+even helping out with stuff.
 
-this project is meant to benefit our 7 Days to Die Gameserver and the Online-panel I am developing for it as well. all decisions regarding this scripts future will have to be weighed against our needs first, so no feature requests please :) If you do develop your own features based on this, I'd very much like to know about it, it will possibly help me improving this bot!
+this project is meant to benefit our 7 Days to Die Game-server and the Online-panel I am developing for it as well. all
+decisions regarding this scripts future will have to be weighed against our needs first, so no feature requests
+please :) If you do develop your own features based on this, I'd very much like to know about it, it will possibly help
+me improving this bot!
 
 I want all parts to be self-contained.
 
@@ -22,26 +30,30 @@ Connect
 
 Send messages
 
-    to the Games chat
+    to the games chat
 
 Listen to chat commands (*The main loop*)
 
-    should run and do nothing else but timeout (if set up)
-    and listen to chat-commands
-    simplest of bots imaginable, could be used as an echo-bot
-    or for really simple server-wide notifications
-    for now we have the '/make this my home' command and the
-    'take me home' command. you can guess what they do ^^
-    I have added a very experimental lobby and password check
-    to get you out of the lobby again
+    should run and do nothing else but timeout (if set up),
+    listen to chat-commands and trigger their actions
 
 The player-poll
 
     periodically scans for new players and stores the data in a sqlite3
     database 
 
-together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting and setting up a homezone
+together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting
+and setting up a home-zone for example
 
-this code has almost NO exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for a public server.
+**The following commands and actions are available at this time:**
+* greeting new players, welcoming back old ones
+* setting up a lobby (/set up lobby)
+    * new players will get ported to the lobby location
+    * a command will allow them to get sent back to their original spawn (/password <password>)
+* players can set up a home and port back there (/make this my home && /take me home)
+
+this code has almost NO exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
+a public server.
 
 code-base is tested on 100% vanilla server and one with Coppis + Botman. Not tested with any other mods.
+also tested it with three instances of this bot connected to the same server by accident. it worked :) 
