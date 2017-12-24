@@ -5,18 +5,60 @@ import telnetlib
 import re
 import time
 import ConfigParser  # only needed for fancy config import
+from threading import Thread, Event
+from rabaDB.rabaSetup import *
+import rabaDB.Raba as R
+import rabaDB.fields as rf
 
-# begin main code ^^
 # import config options
 # I like to kee them out of the way for the versioning system, a config file
 # seems to be a sensible way
 config = ConfigParser.ConfigParser()
 config.read("../private/passwords.txt")
-bot_suffix = "_hoop"
-HOST = config.get("telnet" + bot_suffix, "telnet_host")
-PORT = config.get("telnet" + bot_suffix, "telnet_port")
-PASS = config.get("telnet" + bot_suffix, "telnet_pass")
+bot_suffix = "hoop"
+HOST = config.get("telnet_" + bot_suffix, "telnet_host")
+PORT = config.get("telnet_" + bot_suffix, "telnet_port")
+PASS = config.get("telnet_" + bot_suffix, "telnet_pass")
 
+RabaConfiguration('chrani_server', '../private/db/' + bot_suffix + '.db')
+
+class Player(R.Raba):
+    _raba_namespace = 'chrani_server'
+
+    id = rf.Primitive()
+    name = rf.Primitive()
+    pos_x = rf.Primitive()
+    pos_y = rf.Primitive()
+    pos_z = rf.Primitive()
+    rot_x = rf.Primitive()
+    rot_y = rf.Primitive()
+    rot_z = rf.Primitive()
+    remote = rf.Primitive()
+    health = rf.Primitive()
+    deaths = rf.Primitive()
+    zombies = rf.Primitive()
+    players = rf.Primitive()
+    score = rf.Primitive()
+    level = rf.Primitive()
+    steamid = rf.Primitive()
+    ip = rf.Primitive()
+    ping = rf.Primitive()
+
+    def __init__(self):
+        pass
+
+
+class Location(R.Raba):
+    _raba_namespace = 'chrani_server'
+
+    owner = rf.RabaObject('Player')
+    name = rf.Primitive()
+    pos_x = rf.Primitive()
+    pos_y = rf.Primitive()
+    pos_z = rf.Primitive()
+
+    def __init__(self):
+        pass
 
 def setup_telnet_connection(tn):
     """
@@ -74,8 +116,6 @@ def get_dict_key_by_value(d, mime_type):
 players = {}
 locations = {}
 
-from threading import Thread, Event
-
 
 class PollPlayers(Thread):
     poll_frequency = 2
@@ -96,7 +136,7 @@ class PollPlayers(Thread):
             self.list_players_raw = list_players_raw
 
         def run(self):
-            self.save(self.list_players_raw)
+            self.raba_save(self.list_players_raw)
             self.stopped.set()
 
         def save(self, list_players_raw):
@@ -110,23 +150,45 @@ class PollPlayers(Thread):
             # print players
             return
 
-        def convert_raw_playerdata(self, list_players_raw):
-            list_players_dict = {}
-            playerlines_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), " \
-                                 r"rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), " \
-                                 r"deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), " \
-                                 r"steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n* "
-            for m in re.finditer(playerlines_regexp, list_players_raw):
+        def raba_save(self, list_players_raw):
+            player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
+            for m in re.finditer(player_line_regexp, list_players_raw):
                 """
                 m.group(16) = steamid
                 """
-                list_players_dict[m.group(16)] = dict(id=m.group(1), name=m.group(2),
-                                                      pos={"x": m.group(3), "y": m.group(4), "z": m.group(5)},
-                                                      rot={"1": m.group(6), "2": m.group(6), "3": m.group(6)},
-                                                      remote=m.group(9), health=m.group(10), deaths=m.group(11),
-                                                      zombies=m.group(12), players=m.group(13), score=m.group(14),
-                                                      level=m.group(15), steamid=m.group(16), ip=m.group(17),
-                                                      ping=m.group(18))
+                try:
+                    player = Player(steamid = m.group(16))
+                except KeyError:
+                    player = Player()
+
+                player.id = m.group(1)
+                player.name = m.group(2)
+                player.pos_x = m.group(3)
+                player.pos_y = m.group(4)
+                player.pos_z = m.group(5)
+                player.rot_x = m.group(6)
+                player.rot_y = m.group(7)
+                player.rot_z = m.group(8)
+                player.remote = m.group(9)
+                player.health = m.group(10)
+                player.deaths = m.group(11)
+                player.zombies = m.group(12)
+                player.players = m.group(13)
+                player.score = m.group(14)
+                player.level = m.group(15)
+                player.steamid = m.group(16)
+                player.ip = m.group(17)
+                player.ping = m.group(18)
+                player.save()
+
+        def convert_raw_playerdata(self, list_players_raw):
+            list_players_dict = {}
+            player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
+            for m in re.finditer(player_line_regexp, list_players_raw):
+                """
+                m.group(16) = steamid
+                """
+                list_players_dict[m.group(16)] = {"id": m.group(1), "name": m.group(2), "pos": {"x": m.group(3), "y": m.group(4), "z": m.group(5)}, "rot": {"x": m.group(6), "y": m.group(6), "z": m.group(6)}, "remote": m.group(9), "health": m.group(10), "deaths": m.group(11), "zombies": m.group(12), "players": m.group(13), "score": m.group(14), "level": m.group(15), "steamid": m.group(16), "ip": m.group(17), "ping": m.group(18)}
 
             return list_players_dict
 
@@ -149,9 +211,9 @@ class PollPlayers(Thread):
             fresh player-data is about the most important thing for this bot :)
             """
             next_poll = self.poll_frequency - self.list_players_response_time
-            list_players_raw = self.poll_players()
-            print "player-data poll is active ({0} bytes received, response-time: {1} seconds)".format(
-                str(len(list_players_raw)), str(round(self.list_players_response_time, 3)).ljust(5, '0'))
+            list_players_raw, player_count = self.poll_players()
+            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(
+                str(player_count), str(len(list_players_raw)), str(round(self.list_players_response_time, 3)).ljust(5, '0'))
             # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
             # actual server-transaction won't be delayed
             store_player_list_event = Event()
@@ -179,9 +241,11 @@ class PollPlayers(Thread):
             response = self.list_players_tn.read_until(b"\r\n")
             list_players_response_raw = list_players_response_raw + response
 
-            if re.match(r"Total of [\d]* in the game", response) is not None:
+            m = re.search(r"^Total of (\d{1,2}) in the game\r\n", response)
+            if m:
+                player_count = m.group(1)
                 self.list_players_response_time = time.time() - profile_timestamp_start
-                return list_players_response_raw
+                return list_players_response_raw, player_count
 
 
 class ChatObserverLoop(Thread):
@@ -216,10 +280,13 @@ class ChatObserverLoop(Thread):
             self.loop_tn = telnetlib.Telnet(HOST, PORT)
             setup_telnet_connection(self.loop_tn)
 
+        print "bot is ready and listening"
         timeout_start = None
         while not self.stopped.wait(1):
+            # calling this every second for testing, can be reduced for production and
+            # further reduced after optimizations
             response = self.loop_tn.read_until(b"\r\n", 2)
-            print "chat-observer is alive (" + str(len(response)) + " bytes received)"
+            print "chat-observer is alive ({0} bytes received)".format(str(len(response)))
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
@@ -229,76 +296,86 @@ class ChatObserverLoop(Thread):
                 if timeout_start is None:
                     timeout_start = time.time()
                 elapsed_time = latest_timestamp - timeout_start
-                # print elapsed_time
                 if elapsed_time >= self.timeout_in_seconds:
                     """
                     no idea if this is really neccessary...
                     don't know where to close the thread otherwise
                     if statement, cause the eventit might not be present
                     """
+                    print "scheduled timeout occured after {0} seconds".format(str(int(elapsed_time)))
                     if player_poll_loop_event is not None: player_poll_loop_event.set()
                     if send_message_tn: send_message_tn.close()
+
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
             m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': \/(.+)\r", response)
             # match specific chat messages
             if m:
-                player = m.group(3)
+                player_name = m.group(3)
+                player = Player(name = player_name)
                 command = m.group(4)
-                steamid = get_dict_key_by_value(players, player)[0]
+                # steamid = get_dict_key_by_value(players, player_name)[0]
+                steamid = player.steamid
                 if command == "make this my home":
-                    home_x = players[steamid]['pos']['x']
-                    home_y = players[steamid]['pos']['y']
-                    home_z = players[steamid]['pos']['z']
-                    locations[steamid] = {}
-                    locations[steamid]['homePos'] = {}
-                    locations[steamid]['homePos']['x'] = home_x
-                    locations[steamid]['homePos']['y'] = home_y
-                    locations[steamid]['homePos']['z'] = home_z
-                    send_message(player + " has decided to settle down!")
+                    try:
+                        location = Location(owner = player, name = 'home')
+                    except KeyError:
+                        location = Location()
+                        location.name = 'home'
+                        location.owner = player
+
+                    location.pos_x = player.pos_x
+                    location.pos_y = player.pos_y
+                    location.pos_z = player.pos_z
+                    location.save()
+
+                    send_message(player_name + " has decided to settle down!")
                 elif command == "take me home":
-                    home_x = int(float(locations[steamid]['homePos']['x']))
-                    home_y = int(float(locations[steamid]['homePos']['y']))
-                    home_z = int(float(locations[steamid]['homePos']['z']))
-                    teleport_command = "teleportplayer " + steamid + " " + str(home_x) + " " + str(home_y) + " " + str(
-                        home_z) + "\r\n"
+                    location = Location(owner = player, name = 'home')
+                    pos_x = location.pos_x
+                    pos_y = location.pos_y
+                    pos_z = location.pos_z
+                    teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                     # print teleport_command
                     self.loop_tn.write(teleport_command)
-                    send_message(player + " got homesick")
+                    send_message(player_name + " got homesick")
                 elif command.startswith("password "):
                     p = re.search(r"password (.+)", command)
                     if p:
                         password = p.group(1)
                         print response
-                        if password == "letmein":
+                        if password == "openup":
                             print "correct password!!"
-                            spawn_x = int(float(locations[steamid]['spawnPos']['x']))
-                            spawn_y = int(float(locations[steamid]['spawnPos']['y']))
-                            spawn_z = int(float(locations[steamid]['spawnPos']['z']))
-                            teleport_command = "teleportplayer " + steamid + " " + str(spawn_x) + " " + str(
-                                spawn_y) + " " + str(spawn_z) + "\r\n"
+                            location = Location(owner=player, name='spawn')
+                            pos_x = location.pos_x
+                            pos_y = location.pos_y
+                            pos_z = location.pos_z
+                            teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                             print teleport_command
                             # self.loop_tn.write(teleport_command)
+                            send_message(player_name + " joined the ranks of literate people. Welcome!")
                 else:
                     send_message("the command '" + command + "' is unknown to me...")
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' joined the game\r", response)
             if m:
-                player = m.group(3)
-                steamid = get_dict_key_by_value(players, player)[0]
-                home_x = players[steamid]['pos']['x']
-                home_y = players[steamid]['pos']['y']
-                home_z = players[steamid]['pos']['z']
-                locations[steamid] = {}
-                locations[steamid]['spawnPos'] = {}
-                locations[steamid]['spawnPos']['x'] = home_x
-                locations[steamid]['spawnPos']['y'] = home_y
-                locations[steamid]['spawnPos']['z'] = home_z
-                send_message("this servers bot says Hi to " + player + " o/")
+                player_name = m.group(3)
+                player = Player(name = player_name)
+                steamid = player.steamid
+
+                location = Location()
+                location.name = 'spawn'
+                location.owner = player
+
+                location.pos_x = player.pos_x
+                location.pos_y = player.pos_y
+                location.pos_z = player.pos_z
+
+                location.save()
+                send_message("this servers bot says Hi to " + player_name + " o/")
                 # send_message("your ass will be ported to our safe-zone until you have entered the password")
                 # send_message("enter the password with /password <password> in chat")
-                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(
-                    154) + "\r\n"
+                teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
                 print teleport_command
                 # self.loop_tn.write(teleport_command)
         self.stopped.set()
