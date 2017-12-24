@@ -2,6 +2,8 @@
 
 noob-coded python bot to control a 7 Days to Die gameserver.
 
+installation should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create a passwords.txt file to configure your server. that shuld be it really 
+
 so even if this is not really useful at the moment, it might be a starting point for noob coders like me :)
 
 I will try to get this thing modular as much as possible, always depending on my current knowledge. the plan is to really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello to new players it should only do things required to accomplish exactly that.
@@ -35,9 +37,8 @@ Listen to chat commands (*The main loop*)
 
 The player-poll
 
-    should periodically scan for new players and do something with that data,
-    storing it in a database for example,
-    or just in memory, if we don't want to get fancy. 
+    periodically scans for new players and stores the data in a sqlite3
+    database 
 
 together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting and setting up a homezone
 
