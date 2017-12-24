@@ -185,7 +185,7 @@ class PollPlayers(Thread):
         """
         polls live player data from the games telnet
         times the action to allow for more accurate wait time
-        returns complete telnet output and playercount
+        returns complete telnet output and player count
         """
         profile_timestamp_start = time.time()
         if self.list_players_tn is None:
@@ -274,9 +274,21 @@ class ChatObserverLoop(Thread):
                 player_name = m.group(3)
                 player = Player(name = player_name)
                 command = m.group(4)
-                # steamid = get_dict_key_by_value(players, player_name)[0]
                 steamid = player.steamid
-                if command == "make this my home":
+                if command == "set up lobby":
+                    try:
+                        location = Location(name = 'lobby')
+                    except KeyError:
+                        location = Location()
+                        location.name = 'lobby'
+
+                    location.pos_x = player.pos_x
+                    location.pos_y = player.pos_y
+                    location.pos_z = player.pos_z
+                    location.save()
+
+                    tn_cmd.send_message(player_name + " has set up a lobby. Good job!")
+                elif command == "make this my home":
                     try:
                         location = Location(owner = player, name = 'home')
                     except KeyError:
@@ -296,9 +308,8 @@ class ChatObserverLoop(Thread):
                         pos_x = location.pos_x
                         pos_y = location.pos_y
                         pos_z = location.pos_z
-                        teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(
-                            int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                        # print teleport_command
+                        teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                        print teleport_command
                         self.loop_tn.write(teleport_command)
                         tn_cmd.send_message(player_name + " got homesick")
                     except KeyError:
@@ -307,11 +318,10 @@ class ChatObserverLoop(Thread):
                     p = re.search(r"password (.+)", command)
                     if p:
                         password = p.group(1)
-                        print response
                         if password == "openup":
                             print "correct password!!"
                             if player.authenticated:
-                                tn_cmd.send_message(player_name + ", did you think we forgot you already? ")
+                                tn_cmd.send_message(player_name + ", we trust you already <3")
                             else:
                                 try:
                                     location = Location(owner=player, name='spawn')
@@ -323,7 +333,7 @@ class ChatObserverLoop(Thread):
                                         int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(
                                         int(float(pos_z))) + "\r\n"
                                     print teleport_command
-                                    # self.loop_tn.write(teleport_command)
+                                    self.loop_tn.write(teleport_command)
                                     tn_cmd.send_message(player_name + " joined the ranks of literate people. Welcome!")
                                 except KeyError:
                                     tn_cmd.send_message(player_name + " has no place of origin it seems")
@@ -349,12 +359,22 @@ class ChatObserverLoop(Thread):
                     location.pos_z = player.pos_z
                     location.save()
                     tn_cmd.send_message("this servers bot says Hi to " + player_name + " o/")
-                    # send_message("your ass will be ported to our safe-zone until you have entered the password")
-                    # send_message("enter the password with /password <password> in chat")
-                    teleport_command = "teleportplayer " + steamid + " " + str(-888) + " " + str(-1) + " " + str(154) + "\r\n"
-                    print teleport_command
-                    # self.loop_tn.write(teleport_command)
 
+                if not player.authenticated:
+                    try:
+                        location = Location(name = 'lobby')
+                        pos_x = location.pos_x
+                        pos_y = location.pos_y
+                        pos_z = location.pos_z
+                        tn_cmd.send_message("your ass will be ported to our safe-zone until you have entered the password")
+                        tn_cmd.send_message("read the rules on https://chrani.net/rules")
+                        tn_cmd.send_message("enter the password with /password <password> in this chat")
+                        teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                        print teleport_command
+                        self.loop_tn.write(teleport_command)
+                    except KeyError:
+                        player.authenticated = True
+                        tn_cmd.send_message("this server does not have a lobby, go nuts and explore!")
         self.stopped.set()
 
 
