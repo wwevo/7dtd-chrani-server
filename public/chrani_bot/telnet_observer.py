@@ -164,7 +164,7 @@ class TelnetObserver(Thread):
             except KeyError:
                 pass
 
-    def on_player_death(self, player, connection):
+    def on_player_death(self, player):
         try:
             location = self.Location(owner=player, name='final_resting_place')
         except KeyError:
@@ -227,7 +227,7 @@ class TelnetObserver(Thread):
                     self.on_player_join(player, self.tn_cmd)
 
                 elif command == "died":
-                    self.on_player_death(player, self.tn_cmd)
+                    self.on_player_death(player)
 
             m = re.search(r"^(.+?) (.+?) INF .* \(reason: Died, .* PlayerName='(.*)'\r", response)
             if m:

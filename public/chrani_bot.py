@@ -7,9 +7,9 @@ from rabaDB.rabaSetup import *
 import rabaDB.Raba as R
 import rabaDB.fields as rf
 # these are the actual bot-modules :
-from telnet_cmd import TelnetCommand
-from telnet_observer import TelnetObserver
-from poll_players import PollPlayers
+from chrani_bot.telnet_cmd import TelnetCommand
+from chrani_bot.telnet_observer import TelnetObserver
+from chrani_bot.poll_players import PollPlayers
 
 # import config options
 # I like to keep them out of the way for the versioning system, a config file
