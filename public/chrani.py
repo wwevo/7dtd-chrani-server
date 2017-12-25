@@ -9,6 +9,7 @@ from threading import Thread, Event
 from rabaDB.rabaSetup import *
 import rabaDB.Raba as R
 import rabaDB.fields as rf
+import atexit
 
 # import config options
 # I like to kee them out of the way for the versioning system, a config file
@@ -70,9 +71,12 @@ class TelnetCommand:
     def __init__(self):
         while self.command_tn is None:
             self.command_tn = TelnetCommand.get_connection()
+        print "TelnetCommands telnet connection has been opened"
+        atexit.register(self.cleanup)
 
-    def __del__(self):
+    def cleanup(self):
         if self.command_tn: self.command_tn.close()
+        print "TelnetCommands telnet connection has been closed"
 
     @staticmethod
     def get_connection():
@@ -127,29 +131,29 @@ class TelnetCommand:
 
 class PollPlayers(Thread):
     poll_frequency = 2
-    list_players_tn = None
-    list_players_response_time = 0  # record the runtime of the entire poll
+    poll_players_tn = None
+    poll_players_response_time = 0  # record the runtime of the entire poll
 
     class PlayerList(Thread):
         """
         I've put this in here cause it's never gonna be needed
         outside of PollPlayers.
         """
-        list_players_raw = None
-        list_players_array = None
+        poll_players_raw = None
+        poll_players_array = None
 
         def __init__(self, event, list_players_raw):
             Thread.__init__(self)
             self.stopped = event
-            self.list_players_raw = list_players_raw
+            self.poll_players_raw = list_players_raw
 
         def run(self):
-            self.update(self.list_players_raw)
+            self.update(self.poll_players_raw)
             self.stopped.set()
 
-        def update(self, list_players_raw):
+        def update(self, poll_players_raw):
             player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
-            for m in re.finditer(player_line_regexp, list_players_raw):
+            for m in re.finditer(player_line_regexp, poll_players_raw):
                 """
                 m.group(16) = steamid
                 """
@@ -179,29 +183,33 @@ class PollPlayers(Thread):
                 player.save()
 
     def __init__(self, event):
-        while self.list_players_tn is None:
-            self.list_players_tn = TelnetCommand.get_connection()
+        while self.poll_players_tn is None:
+            self.poll_players_tn = TelnetCommand.get_connection()
+        print "PollPlayers telnet connection has been opened"
 
         Thread.__init__(self)
         self.stopped = event
+        atexit.register(self.cleanup)
 
-    def __del__(self):
-        if self.list_players_tn: self.list_players_tn.close()
+    def cleanup(self):
+        if self.poll_players_tn: self.poll_players_tn.close()
+        print "PollPlayers loop has been shut down"
 
     def run(self):
         """
         recorded the runtime of the poll, using it to calculate the exact wait
         time between executions
         """
+        print "playe poll is ready and listening"
         next_poll = 0;
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
             fresh player-data is about the most important thing for this bot :)
             """
-            next_poll = self.poll_frequency - self.list_players_response_time
+            next_poll = self.poll_frequency - self.poll_players_response_time
             list_players_raw, player_count = self.poll_players()
-            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.list_players_response_time, 3)).ljust(5, '0'))
+            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
 
             # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
             # actual server-transaction won't be delayed
@@ -218,7 +226,7 @@ class PollPlayers(Thread):
         profile_timestamp_start = time.time()
 
         list_players_response_raw = ""
-        self.list_players_tn.write("lp" + b"\r\n")
+        self.poll_players_tn.write("lp" + b"\r\n")
         while list_players_response_raw == "" or response:
             """
             fetches the response of the games telnet 'lp' command
@@ -226,13 +234,13 @@ class PollPlayers(Thread):
             last line from the games lp command, the one we are matching,
             might change with a new game-version
             """
-            response = self.list_players_tn.read_until(b"\r\n")
+            response = self.poll_players_tn.read_until(b"\r\n")
             list_players_response_raw = list_players_response_raw + response
 
             m = re.search(r"^Total of (\d{1,2}) in the game\r\n", response)
             if m:
                 player_count = m.group(1)
-                self.list_players_response_time = time.time() - profile_timestamp_start
+                self.poll_players_response_time = time.time() - profile_timestamp_start
                 return list_players_response_raw, player_count
 
 
@@ -241,18 +249,20 @@ class ChatObserverLoop(Thread):
     Only mandatory function for the bot!
     """
     loop_tn = None
-    timeout_in_seconds = 0
+    timeout_in_seconds = 5
 
     def __init__(self, event):
         while self.loop_tn is None:
             self.loop_tn = TelnetCommand.get_connection()
+        print "ChatObservers telnet connection has been opened"
 
         Thread.__init__(self)
         self.stopped = event
+        atexit.register(self.cleanup)
 
-    def __del__(self):
-        if self.loop_tn:
-            self.loop_tn.close()
+    def cleanup(self):
+        if self.loop_tn: self.loop_tn.close()
+        print "ChatObserver loop has been shut down"
 
     def run(self):
         """
@@ -264,6 +274,7 @@ class ChatObserverLoop(Thread):
         """
         player_poll_loop_event = Event()
         player_poll_loop_thread = PollPlayers(player_poll_loop_event)
+        player_poll_loop_thread.setDaemon(True)
         player_poll_loop_thread.start()
 
         tn_cmd = TelnetCommand()
@@ -293,7 +304,6 @@ class ChatObserverLoop(Thread):
                     if statement, cause the eventit might not be present
                     """
                     print "scheduled timeout occured after {0} seconds".format(str(int(elapsed_time)))
-                    if player_poll_loop_event is not None: player_poll_loop_event.set()
                     break
 
             # group(1) = datetime, group(2) = stardate?, group(3) = bot command
@@ -476,6 +486,7 @@ class ChatObserverLoop(Thread):
         self.stopped.set()
 
 
-global_loop_event = Event()
-global_loop_thread = ChatObserverLoop(global_loop_event)
-global_loop_thread.start()
+if __name__ == '__main__':
+    global_loop_event = Event()
+    global_loop_thread = ChatObserverLoop(global_loop_event)
+    global_loop_thread.start()
