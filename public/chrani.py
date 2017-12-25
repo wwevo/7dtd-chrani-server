@@ -281,12 +281,13 @@ class ChatObserverLoop(Thread):
         tn_cmd = TelnetCommand()
         print "bot is ready and listening"
         timeout_start = None
+        execution_time = 0.0
         while not self.stopped.wait(1):
             # calling this every second for testing, can be reduced for production and
             # further reduced after optimizations
             response = self.loop_tn.read_until(b"\r\n", 2)
             # print response
-            print "chat-observer is alive ({0} bytes received)".format(str(len(response)))
+            print "chat-observer is alive ({0} bytes received, execution-time: {1} seconds)".format(str(len(response)), str(round(execution_time, 3)).ljust(5, '0'))
             """
             get a flowing timestamp going
             implement simple timeout function for debug and testing
@@ -418,7 +419,7 @@ class ChatObserverLoop(Thread):
 
                 try:
                     location = Location(owner=player, name='spawn')
-                    tn_cmd.send_message(steamid, "Welcome back " + player_name + " o/")
+                    tn_cmd.send_message("Welcome back " + player_name + " o/")
                 except KeyError:
                     location = Location()
                     location.name = 'spawn'
@@ -481,7 +482,8 @@ class ChatObserverLoop(Thread):
                         pass
                 else:
                     tn_cmd.send_message("type /man, where's my pack? in this chat to return to your backpack!")
-
+            chat_line_scan_time = time.time()
+            execution_time = chat_line_scan_time - latest_timestamp
         self.stopped.set()
 
 
