@@ -244,12 +244,12 @@ class PollPlayers(Thread):
                 return list_players_response_raw, player_count
 
 
-class ChatObserverLoop(Thread):
+class TelnetObserverLoop(Thread):
     """
     Only mandatory function for the bot!
     """
     loop_tn = None
-    timeout_in_seconds = 5
+    timeout_in_seconds = 4
 
     def __init__(self, event):
         while self.loop_tn is None:
@@ -272,11 +272,6 @@ class ChatObserverLoop(Thread):
         eventually all functions should be modules that can dynamically link
         into the loop somehow
         """
-        player_poll_loop_event = Event()
-        player_poll_loop_thread = PollPlayers(player_poll_loop_event)
-        player_poll_loop_thread.setDaemon(True)
-        player_poll_loop_thread.start()
-
         tn_cmd = TelnetCommand()
         print "bot is ready and listening"
         tn_cmd.send_message("Hi there. Command me!")
@@ -487,6 +482,20 @@ class ChatObserverLoop(Thread):
 
 
 if __name__ == '__main__':
-    global_loop_event = Event()
-    global_loop_thread = ChatObserverLoop(global_loop_event)
-    global_loop_thread.start()
+    """
+    mandatory threads! all other thread will be shut down if this one is missing  
+    """
+    telnet_observer_event = Event()
+    telnet_observer_thread = TelnetObserverLoop(telnet_observer_event)
+    telnet_observer_thread.start()
+
+    """
+    optional threads. depend on global loop to be running
+    it is the plan that they can inject chat listeners into the main loop
+    this needs some planning, will be required before we start with big additions though 
+    """
+    player_poll_loop_event = Event()
+    player_poll_loop_thread = PollPlayers(player_poll_loop_event)
+    player_poll_loop_thread.setDaemon(True) # thread get's shut down when all non daemon threads have ended
+    player_poll_loop_thread.start()
+
