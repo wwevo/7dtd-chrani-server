@@ -50,10 +50,14 @@ and setting up a home-zone for example
 * setting up a lobby (/set up lobby)
     * new players will get ported to the lobby location
     * a command will allow them to get sent back to their original spawn (/password <password>)
+    * players will be ported back to the lobby after death if they haven't entered the password
 * players can set up a home and port back there (/make this my home && /take me home)
+* players can port back to their last place of death to retrieve their backpack (/man, where's my pack?)
 
-this code has almost NO exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
+this code only has some exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
 a public server.
 
 code-base is tested on 100% vanilla server and one with Coppis + Botman. Not tested with any other mods.
 also tested it with three instances of this bot connected to the same server by accident. it worked :) 
+
+coppis will be needed though as a lot of important features won#t be available without it. like pm's and colored chat
