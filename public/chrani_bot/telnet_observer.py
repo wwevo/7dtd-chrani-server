@@ -132,9 +132,6 @@ class TelnetObserver(Thread):
             else:
                 connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
 
-        else:
-            connection.send_message(connection.tn, "the command '" + command + "' is unknown to me :)")
-
     def on_player_join(self, player, connection):
         try:
             location = self.Location(owner=player, name='spawn')
@@ -194,7 +191,7 @@ class TelnetObserver(Thread):
             profiling_start = time.time()
 
             # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
-            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': \/(.+)\r", response)
+            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': /(.+)\r", response)
             # match specific chat messages
             if m:
                 player_name = m.group(3)
@@ -216,12 +213,15 @@ class TelnetObserver(Thread):
                 elif command.startswith("password "):
                     self.password(player, command, self.tn_cmd)
 
+                else:
+                    self.tn_cmd.send_message(self.tn, "the command '" + command + "' is unknown to me :)")
+
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
+            # match specific Player-events
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
                 command = m.group(4)
-                steamid = player.steamid
 
                 if command == "joined the game":
                     self.on_player_join(player, self.tn_cmd)
@@ -234,6 +234,7 @@ class TelnetObserver(Thread):
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
                 steamid = player.steamid
+
                 if not player.authenticated:
                     try:
                         location = self.Location(name='lobby')
@@ -243,11 +244,11 @@ class TelnetObserver(Thread):
                         teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                         print teleport_command
                         self.tn.write(teleport_command)
-                        self.tn_cmd.send_message("there is no escape from the lobby!")
+                        self.tn_cmd.send_message(self.tn, "there is no escape from the lobby!")
                     except KeyError:
                         pass
                 else:
-                    self.tn_cmd.send_message("type /man, where's my pack? in this chat to return to your backpack!")
+                    self.tn_cmd.send_message(self.tn, "type /man, where's my pack? in this chat to return to your backpack!")
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
             print "telnet-observer is alive ({0} bytes received, execution-time: {1} seconds)".format(str(len(response)), str(round(profiling_time, 3)).ljust(5, '0'))

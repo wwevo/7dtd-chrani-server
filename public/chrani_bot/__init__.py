@@ -1,1 +1,1 @@
-__all__ = ["telnet_cmd", "telnet_observer", "poll_players"]
+__all__ = ["rabaDB", "telnet_cmd", "telnet_observer", "poll_players"]

@@ -1,28 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 # imports
-import ConfigParser  # only needed for fancy config import
 from threading import Event
-from rabaDB.rabaSetup import *
-import rabaDB.Raba as R
-import rabaDB.fields as rf
 # these are the actual bot-modules :
 from chrani_bot.telnet_cmd import TelnetCommand
 from chrani_bot.telnet_observer import TelnetObserver
 from chrani_bot.poll_players import PollPlayers
-
-# import config options
-# I like to keep them out of the way for the versioning system, a config file
-# seems to be a sensible way
-config = ConfigParser.ConfigParser()
-config.read("../private/passwords.txt")
-
-bot_suffix = "hoop"
-HOST = config.get("telnet_" + bot_suffix, "telnet_host")
-PORT = config.get("telnet_" + bot_suffix, "telnet_port")
-PASS = config.get("telnet_" + bot_suffix, "telnet_pass")
-
-RabaConfiguration('chrani_server', '../private/db/' + bot_suffix + '.db')
+from chrani_bot.setup import HOST, PORT, PASS
+import chrani_bot.rabaDB.Raba as R
+import chrani_bot.rabaDB.fields as rf
 
 
 class Player(R.Raba):
