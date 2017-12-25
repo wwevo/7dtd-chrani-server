@@ -5,14 +5,15 @@ import re
 
 
 class TelnetCommand:
-    command_tn = None
+    tn = None
 
     def __init__(self, telnet_host, telnet_port, telnet_pass):
-        self.command_tn = TelnetCommand.get_connection(telnet_host, telnet_port, telnet_pass)
+        self.tn = TelnetCommand.get_connection(telnet_host, telnet_port, telnet_pass)
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        if self.command_tn: self.command_tn.close()
+        if self.tn:
+            self.tn.close()
         print "TelnetCommands telnet connection has been closed"
 
     @staticmethod
@@ -42,27 +43,15 @@ class TelnetCommand:
         # last 'welcome' line from the games telnet. it might change with a new game-version
         return connection.read_until("Press 'exit' to end session.")
 
-    def send_message(self, message):
+    @staticmethod
+    def send_message(connection, message):
         response = None
         send_message_response_raw = ""
 
-        self.command_tn.write("say \"" + message + b"\"\r\n")
+        connection.write("say \"" + message + b"\"\r\n")
         while send_message_response_raw == "" or response:
-            response = self.command_tn.read_until(b"\r\n")
+            response = connection.read_until(b"\r\n")
             send_message_response_raw = send_message_response_raw + response
 
             if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(message) + "\r", response) is not None:
-                return send_message_response_raw
-
-    def send_private_message(self, player, message):
-        response = None
-        send_message_response_raw = ""
-
-        self.command_tn.write("say \"" + message + b"\"\r\n")
-
-        while send_message_response_raw == "" or response:
-            response = self.command_tn.read_until(b"\r\n")
-            send_message_response_raw = send_message_response_raw + response
-
-            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(message) + "\r", response) is not None:
-                return send_message_response_raw
+                return True

@@ -3,12 +3,12 @@ import re
 from threading import Thread, Event
 from rabaDB.rabaSetup import *
 import atexit
-from telnet_cmd import TelnetCommand
 
 
 class PollPlayers(Thread):
+    tn_cmd = None
+    tn = None
     poll_frequency = 2
-    poll_players_tn = None
     poll_players_response_time = 0  # record the runtime of the entire poll
 
     class PlayerList(Thread):
@@ -19,7 +19,8 @@ class PollPlayers(Thread):
         poll_players_raw = None
         poll_players_array = None
 
-        def __init__(self, event, list_players_raw):
+        def __init__(self, event, list_players_raw, player):
+            self.Player = player
             Thread.__init__(self)
             self.stopped = event
             self.poll_players_raw = list_players_raw
@@ -35,9 +36,9 @@ class PollPlayers(Thread):
                 m.group(16) = steamid
                 """
                 try:
-                    player = Player(steamid = m.group(16))
+                    player = self.Player(steamid=m.group(16))
                 except KeyError:
-                    player = Player()
+                    player = self.Player()
 
                 player.id = m.group(1)
                 player.name = m.group(2)
@@ -59,14 +60,17 @@ class PollPlayers(Thread):
                 player.ping = m.group(18)
                 player.save()
 
-    def __init__(self, event, tn):
-        self.poll_players_tn = tn
+    def __init__(self, event, tn, player):
+        self.tn_cmd = tn
+        self.tn = self.tn_cmd.tn
+        self.Player = player
         Thread.__init__(self)
         self.stopped = event
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        if self.poll_players_tn: self.poll_players_tn.close()
+        if self.tn:
+            self.tn.close()
         print "poll-players loop has been shut down"
 
     def run(self):
@@ -75,7 +79,7 @@ class PollPlayers(Thread):
         time between executions
         """
         print "poll-players loop is ready and listening"
-        next_poll = 0;
+        next_poll = 0
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
@@ -88,7 +92,7 @@ class PollPlayers(Thread):
             # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
             # actual server-transaction won't be delayed
             store_player_list_event = Event()
-            store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw)
+            store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw, self.Player)
             store_player_list_thread.start()
 
     def poll_players(self):
@@ -100,7 +104,7 @@ class PollPlayers(Thread):
         profile_timestamp_start = time.time()
 
         list_players_response_raw = ""
-        self.poll_players_tn.write("lp" + b"\r\n")
+        self.tn.write("lp" + b"\r\n")
         while list_players_response_raw == "" or response:
             """
             fetches the response of the games telnet 'lp' command
@@ -108,7 +112,7 @@ class PollPlayers(Thread):
             last line from the games lp command, the one we are matching,
             might change with a new game-version
             """
-            response = self.poll_players_tn.read_until(b"\r\n")
+            response = self.tn.read_until(b"\r\n")
             list_players_response_raw = list_players_response_raw + response
 
             m = re.search(r"^Total of (\d{1,2}) in the game\r\n", response)
