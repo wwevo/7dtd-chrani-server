@@ -174,6 +174,22 @@ class TelnetObserver(Thread):
         location.pos_z = player.pos_z
         location.save()
 
+    def on_respawn_after_death(self, player, connection):
+        if not player.authenticated:
+            try:
+                location = self.Location(name='lobby')
+                pos_x = location.pos_x
+                pos_y = location.pos_y
+                pos_z = location.pos_z
+                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                # print teleport_command
+                self.tn.write(teleport_command)
+                connection.send_message(connection.tn, "there is no escape from the lobby!")
+            except KeyError:
+                pass
+        else:
+            connection.send_message(connection.tn, "type /man, where's my pack? in this chat to return to your backpack!")
+
     def run(self):
         """
         I'm throwing everything in here I can think of
@@ -183,7 +199,7 @@ class TelnetObserver(Thread):
         into the loop somehow
         """
         print "bot is ready and listening"
-        # loop_tn.send_message("Hi there. Command me!")
+        self.tn_cmd.send_message(self.tn, "Hi there. Command me!")
         script_start = time.time()
         while not self.stopped.wait(1) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
             # calling this every second for testing
@@ -227,28 +243,15 @@ class TelnetObserver(Thread):
                     self.on_player_join(player, self.tn_cmd)
 
                 elif command == "died":
-                    self.on_player_death(player)
+                    self.on_player_death(player, self.tn_cmd)
 
             m = re.search(r"^(.+?) (.+?) INF .* \(reason: Died, .* PlayerName='(.*)'\r", response)
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
-                steamid = player.steamid
 
-                if not player.authenticated:
-                    try:
-                        location = self.Location(name='lobby')
-                        pos_x = location.pos_x
-                        pos_y = location.pos_y
-                        pos_z = location.pos_z
-                        teleport_command = "teleportplayer " + steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                        print teleport_command
-                        self.tn.write(teleport_command)
-                        self.tn_cmd.send_message(self.tn, "there is no escape from the lobby!")
-                    except KeyError:
-                        pass
-                else:
-                    self.tn_cmd.send_message(self.tn, "type /man, where's my pack? in this chat to return to your backpack!")
+                self.on_respawn_after_death(player)
+
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
             print "telnet-observer is alive ({0} bytes received, execution-time: {1} seconds)".format(str(len(response)), str(round(profiling_time, 3)).ljust(5, '0'))

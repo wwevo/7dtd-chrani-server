@@ -85,15 +85,15 @@ class PollPlayers(Thread):
             basically an endless loop
             fresh player-data is about the most important thing for this bot :)
             """
-            next_poll = self.poll_frequency - self.poll_players_response_time
             list_players_raw, player_count = self.poll_players()
-            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
 
             # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
             # actual server-transaction won't be delayed
             store_player_list_event = Event()
             store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw, self.Player)
             store_player_list_thread.start()
+            next_poll = self.poll_frequency - self.poll_players_response_time
+            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
 
     def poll_players(self):
         """
