@@ -15,11 +15,12 @@ class TelnetObserver(Thread):
     tn = None
     timeout_in_seconds = 0
 
-    def __init__(self, event, tn, player, location):
+    def __init__(self, event, tn, player, location, timeout = 0):
         self.tn_cmd = tn
         self.tn = self.tn_cmd.tn
         self.Player = player
         self.Location = location
+        self.timeout_in_seconds = timeout
         Thread.__init__(self)
         self.stopped = event
         atexit.register(self.cleanup)
@@ -33,7 +34,7 @@ class TelnetObserver(Thread):
             if timeout_start is None:
                 timeout_start = time.time()
             elapsed_time = time.time() - timeout_start
-            if elapsed_time >= self.timeout_in_seconds:
+            if elapsed_time >= timeout_in_seconds:
                 print "scheduled timeout occurred after {0} seconds".format(str(int(elapsed_time)))
                 return True
         return None
@@ -133,6 +134,15 @@ class TelnetObserver(Thread):
                 connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
 
     def on_player_join(self, player, connection):
+        """
+        ever newly logged in player will be handled here
+        players will be greeted, a spawn will be set for new players
+        if the player is not authenticated, he will be ported to the lobby, if one is set
+        a prompt to enter the password will be displayed to unlock commands
+        :param player: player-object pulled from database
+        :param connection: Telnet command object
+        :return: nothing to return
+        """
         try:
             location = self.Location(owner=player, name='spawn')
             connection.send_message(connection.tn, "Welcome back " + player.name + " o/")
@@ -152,16 +162,23 @@ class TelnetObserver(Thread):
                 pos_x = location.pos_x
                 pos_y = location.pos_y
                 pos_z = location.pos_z
-                connection.send_message(connection.tn, "your ass will be ported to our lobby until you have entered the password")
+                connection.send_message(connection.tn, "yo ass will be ported to our lobby plus tha command-shit is restricted yo")
                 connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
                 connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
                 teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                 print teleport_command
                 connection.tn.write(teleport_command)
             except KeyError:
-                pass
+                connection.send_message(connection.tn, "your account is restricted until you have read the rules")
+                connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
+                connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
 
     def on_player_death(self, player):
+        """
+        saves location of the last death for a later return
+        :param player: player-object
+        :return: nothing to return
+        """
         try:
             location = self.Location(owner=player, name='final_resting_place')
         except KeyError:
@@ -175,6 +192,15 @@ class TelnetObserver(Thread):
         location.save()
 
     def on_respawn_after_death(self, player, connection):
+        """
+        scans for player respawn after death
+        sends players who are not authenticated back to the lobby
+        states to existing ones that they can port to it.
+        does nothing if player is not authenticated and no lobby exists
+        :param player: player-object pulled from database
+        :param connection: Telnet command object
+        :return: nothing to return
+        """
         if not player.authenticated:
             try:
                 location = self.Location(name='lobby')

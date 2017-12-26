@@ -14,7 +14,6 @@ class TelnetCommand:
     def cleanup(self):
         if self.tn:
             self.tn.close()
-        print "TelnetCommands telnet connection has been closed"
 
     @staticmethod
     def get_connection(telnet_host, telnet_port, telnet_pass):
