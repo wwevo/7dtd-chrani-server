@@ -177,7 +177,7 @@ class TelnetObserver(Thread):
                 connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
                 connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
 
-    def on_player_death(self, player):
+    def on_player_death(self, player, connection):
         """
         saves location of the last death for a later return
         :param player: player-object
@@ -197,10 +197,18 @@ class TelnetObserver(Thread):
 
     def on_respawn_after_death(self, player, connection):
         """
-        scans for player respawn after death
+        states to authenticated players that they can port to their backpack
+        :param player: player-object pulled from database
+        :param connection: Telnet command object
+        :return: nothing to return
+        """
+        if player.authenticated:
+            connection.send_message(connection.tn, "type /man, where's my pack? in this chat to return to your backpack!")
+
+    def on_respawn_after_death_lobby(self, player, connection):
+        """
         sends players who are not authenticated back to the lobby
-        states to existing ones that they can port to it.
-        does nothing if player is not authenticated and no lobby exists
+        :param self: needed for the class it will be running in
         :param player: player-object pulled from database
         :param connection: Telnet command object
         :return: nothing to return
@@ -211,14 +219,13 @@ class TelnetObserver(Thread):
                 pos_x = location.pos_x
                 pos_y = location.pos_y
                 pos_z = location.pos_z
-                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(
+                    int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                 # print teleport_command
                 self.tn.write(teleport_command)
                 connection.send_message(connection.tn, "there is no escape from the lobby!")
             except KeyError:
                 pass
-        else:
-            connection.send_message(connection.tn, "type /man, where's my pack? in this chat to return to your backpack!")
 
     def run(self):
         """
@@ -260,6 +267,7 @@ class TelnetObserver(Thread):
                     self.password(player, command, self.tn_cmd)
 
                 else:
+                    print "unhandled command: " + command
                     self.tn_cmd.send_message(self.tn, "the command '" + command + "' is unknown to me :)")
 
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
@@ -275,12 +283,18 @@ class TelnetObserver(Thread):
                 elif command == "died":
                     self.on_player_death(player, self.tn_cmd)
 
-            m = re.search(r"^(.+?) (.+?) INF .* \(reason: Died, .* PlayerName='(.*)'\r", response)
+                else:
+                    print "unhandled player event: " + command
+
+            m = re.search(r"^(.+?) (.+?) INF PlayerSpawnedInWorld \(reason: (.+?), .* PlayerName='(.*)'\r", response)
             if m:
-                player_name = m.group(3)
+                reason = m.group(3)
+                player_name = m.group(4)
                 player = self.Player(name=player_name)
 
-                self.on_respawn_after_death(player)
+                if reason == "Died":
+                    self.on_respawn_after_death(player, self.tn_cmd)
+                    self.on_respawn_after_death_lobby(player, self.tn_cmd)
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start

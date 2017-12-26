@@ -64,4 +64,5 @@ a public server.
 code-base is tested on 100% vanilla server and one with Coppis + Botman. Not tested with any other mods.
 also tested it with three instances of this bot connected to the same server by accident. it worked :) 
 
-coppis will be needed though as a lot of important features won#t be available without it. like pm's and colored chat
+coppis will be needed though as a lot of important features won't be available without it. like pm's and colored chat
+and in fact hidden chat-command. all of these are kinda required on a real world server :)
