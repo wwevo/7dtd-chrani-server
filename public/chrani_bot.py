@@ -3,12 +3,17 @@
 # imports
 from threading import Event
 # these are the actual bot-modules :
+from chrani_bot.setup import HOST, PORT, PASS
 from chrani_bot.telnet_cmd import TelnetCommand
 from chrani_bot.telnet_observer import TelnetObserver
 from chrani_bot.poll_players import PollPlayers
-from chrani_bot.setup import HOST, PORT, PASS
 import chrani_bot.rabaDB.Raba as Rc
 import chrani_bot.rabaDB.fields as rf
+# here come the actions
+from chrani_bot.actions_lobby import actions_lobby
+from chrani_bot.actions_backpack import actions_perks
+from chrani_bot.actions_home import actions_home
+from chrani_bot.tools import merge_dicts
 
 
 class Player(Rc.Raba):
@@ -57,6 +62,7 @@ if __name__ == '__main__':
     """
     telnet_observer_event = Event()
     telnet_observer_thread = TelnetObserver(telnet_observer_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    telnet_observer_thread.actions = merge_dicts(actions_lobby, actions_perks, actions_home)
     telnet_observer_thread.start()
 
     """

@@ -16,6 +16,7 @@ class TelnetObserver(Thread):
     tn_cmd = None  # telnetCommand class
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
+    actions = None
 
     def __init__(self, event, tn, player, location, timeout = 0):
         self.tn_cmd = tn
@@ -42,73 +43,6 @@ class TelnetObserver(Thread):
                 print "scheduled timeout occurred after {0} seconds".format(str(int(elapsed_time)))
                 return True
         return None
-
-    def set_up_lobby(self, player, connection):
-        if player.authenticated:
-            try:
-                location = self.Location(name='lobby')
-            except KeyError:
-                location = self.Location()
-                location.name = 'lobby'
-
-            location.pos_x = player.pos_x
-            location.pos_y = player.pos_y
-            location.pos_z = player.pos_z
-            location.save()
-
-            connection.send_message(connection.tn, player.name + " has set up a lobby. Good job!")
-        else:
-            connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
-
-    def make_this_my_home(self, player, connection):
-        if player.authenticated:
-            try:
-                location = self.Location(owner=player, name='home')
-            except KeyError:
-                location = self.Location()
-                location.name = 'home'
-                location.owner = player
-
-            location.pos_x = player.pos_x
-            location.pos_y = player.pos_y
-            location.pos_z = player.pos_z
-            location.save()
-
-            connection.send_message(connection.tn, player.name + " has decided to settle down!")
-        else:
-            connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
-
-    def take_me_home(self, player, connection):
-        if player.authenticated:
-            try:
-                location = self.Location(owner=player, name='home')
-                pos_x = location.pos_x
-                pos_y = location.pos_y
-                pos_z = location.pos_z
-                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                # print teleport_command
-                connection.tn.write(teleport_command)
-                connection.send_message(connection.tn, player.name + " got homesick")
-            except KeyError:
-                connection.send_message(connection.tn, player.name + " is apparently homeless...")
-        else:
-            connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
-
-    def man_where_is_my_pack(self, player, connection):
-        if player.authenticated:
-            try:
-                location = self.Location(owner=player, name='final_resting_place')
-                pos_x = location.pos_x
-                pos_y = location.pos_y
-                pos_z = location.pos_z
-                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                # print teleport_command
-                connection.tn.write(teleport_command)
-                connection.send_message(connection.tn, player.name + " is laaaaazy :)")
-            except KeyError:
-                connection.send_message(connection.tn, player.name + " believes to have died, but didn't oO")
-        else:
-            connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
 
     def password(self, player, command, connection):
         p = re.search(r"password (.+)", command)
@@ -137,96 +71,6 @@ class TelnetObserver(Thread):
             else:
                 connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
 
-    def on_player_join(self, player, connection):
-        """
-        ever newly logged in player will be handled here
-        players will be greeted, a spawn will be set for new players
-        if the player is not authenticated, he will be ported to the lobby, if one is set
-        a prompt to enter the password will be displayed to unlock commands
-        :param player: player-object pulled from database
-        :param connection: Telnet command object
-        :return: nothing to return
-        """
-        try:
-            location = self.Location(owner=player, name='spawn')
-            connection.send_message(connection.tn, "Welcome back " + player.name + " o/")
-        except KeyError:
-            location = self.Location()
-            location.name = 'spawn'
-            location.owner = player
-            location.pos_x = player.pos_x
-            location.pos_y = player.pos_y
-            location.pos_z = player.pos_z
-            location.save()
-            connection.send_message(connection.tn, "this servers bot says Hi to " + player.name + " o/")
-
-        if not player.authenticated:
-            try:
-                location = self.Location(name='lobby')
-                pos_x = location.pos_x
-                pos_y = location.pos_y
-                pos_z = location.pos_z
-                connection.send_message(connection.tn, "yo ass will be ported to our lobby plus tha command-shit is restricted yo")
-                connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
-                connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
-                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                print teleport_command
-                connection.tn.write(teleport_command)
-            except KeyError:
-                connection.send_message(connection.tn, "your account is restricted until you have read the rules")
-                connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
-                connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
-
-    def on_player_death(self, player, connection):
-        """
-        saves location of the last death for a later return
-        :param player: player-object
-        :return: nothing to return
-        """
-        try:
-            location = self.Location(owner=player, name='final_resting_place')
-        except KeyError:
-            location = self.Location()
-            location.name = 'final_resting_place'
-            location.owner = player
-
-        location.pos_x = player.pos_x
-        location.pos_y = player.pos_y
-        location.pos_z = player.pos_z
-        location.save()
-
-    def on_respawn_after_death(self, player, connection):
-        """
-        states to authenticated players that they can port to their backpack
-        :param player: player-object pulled from database
-        :param connection: Telnet command object
-        :return: nothing to return
-        """
-        if player.authenticated:
-            connection.send_message(connection.tn, "type /man, where's my pack? in this chat to return to your backpack!")
-
-    def on_respawn_after_death_lobby(self, player, connection):
-        """
-        sends players who are not authenticated back to the lobby
-        :param self: needed for the class it will be running in
-        :param player: player-object pulled from database
-        :param connection: Telnet command object
-        :return: nothing to return
-        """
-        if not player.authenticated:
-            try:
-                location = self.Location(name='lobby')
-                pos_x = location.pos_x
-                pos_y = location.pos_y
-                pos_z = location.pos_z
-                teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(
-                    int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                # print teleport_command
-                self.tn.write(teleport_command)
-                connection.send_message(connection.tn, "there is no escape from the lobby!")
-            except KeyError:
-                pass
-
     def run(self):
         """
         I'm throwing everything in here I can think of
@@ -236,7 +80,7 @@ class TelnetObserver(Thread):
         into the loop somehow
         """
         print "bot is ready and listening"
-        self.tn_cmd.send_message(self.tn, "Hi there. Command me!")
+        # self.tn_cmd.send_message(self.tn, "Hi there. Command me!")
         script_start = time.time()
         while not self.stopped.wait(1) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
             # calling this every second for testing
@@ -245,56 +89,48 @@ class TelnetObserver(Thread):
 
             # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
             m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': /(.+)\r", response)
-            # match specific chat messages
+            # match chat messages
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
                 command = m.group(4)
 
-                if command == "set up lobby":
-                    self.set_up_lobby(player, self.tn_cmd)
+                if command is not None:
+                    actions = self.actions.get(command)
+                    if actions is not None:
+                        for action in actions:
+                            print "action"
+                            action[0](self, player, self.tn_cmd)
 
-                elif command == "make this my home":
-                    self.make_this_my_home(player,  self.tn_cmd)
-
-                elif command == "take me home":
-                    self.take_me_home(player, self.tn_cmd)
-
-                elif command == "man, where's my pack?":
-                    self.man_where_is_my_pack(player, self.tn_cmd)
-
-                elif command.startswith("password "):
+                if command.startswith("password "):
                     self.password(player, command, self.tn_cmd)
 
-                else:
-                    print "unhandled command: " + command
-                    self.tn_cmd.send_message(self.tn, "the command '" + command + "' is unknown to me :)")
-
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
-            # match specific Player-events
+            # player_events
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
                 command = m.group(4)
 
-                if command == "joined the game":
-                    self.on_player_join(player, self.tn_cmd)
-
-                elif command == "died":
-                    self.on_player_death(player, self.tn_cmd)
-
-                else:
-                    print "unhandled player event: " + command
+                if command is not None:
+                    actions = self.actions.get(command)
+                    if actions is not None:
+                        for action in actions:
+                            print "action"
+                            action[0](self, player, self.tn_cmd)
 
             m = re.search(r"^(.+?) (.+?) INF PlayerSpawnedInWorld \(reason: (.+?), .* PlayerName='(.*)'\r", response)
             if m:
-                reason = m.group(3)
+                command = m.group(3)
                 player_name = m.group(4)
                 player = self.Player(name=player_name)
 
-                if reason == "Died":
-                    self.on_respawn_after_death(player, self.tn_cmd)
-                    self.on_respawn_after_death_lobby(player, self.tn_cmd)
+                if command is not None:
+                    actions = self.actions.get(command)
+                    if actions is not None:
+                        for action in actions:
+                            print "action"
+                            action[0](self, player, self.tn_cmd)
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
