@@ -11,6 +11,10 @@ I will try to get this thing modular as much as possible, always depending on my
 really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
 to new players it should only do things required to accomplish exactly that.
 
+I've started to refactor the hell out of the code to make it unit-testable. not there yet, but it's getting there.
+I have also started on getting the functions out of the loop, to allow for dynamic loading of required / desired
+functions 
+
 *this is my very first project with python*, apart from the Hello World example, so a lot of stuff might take a lot of
 time for me, and I will not always hit the best methods of doing things I'm sure. feel free to comment on my code or
 even helping out with stuff.
