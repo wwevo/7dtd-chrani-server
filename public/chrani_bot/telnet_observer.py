@@ -1,5 +1,3 @@
-import atexit
-import time
 import re
 from threading import Thread, Event
 from rabaDB.rabaSetup import *
@@ -8,12 +6,16 @@ import atexit
 
 class TelnetObserver(Thread):
     """
-    Only mandatory function for the bot!
+    for now this loop observes all telnet activity and acts on it.
+    in the future, it will get all match-strings and their handlers passed in by the constructor so we can
+    chose which functions we want. there will be no sanity checks, the admin has to know which commands
+    require others
     """
-    loop_tn = None
-    tn_cmd = None
-    tn = None
-    timeout_in_seconds = 0
+    Player = None  # will hold the players rabaDB object
+    Location = None  # will hold the locations rabaDB object
+    tn_cmd = None  # telnetCommand class
+    tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
+    timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
 
     def __init__(self, event, tn, player, location, timeout = 0):
         self.tn_cmd = tn
@@ -26,10 +28,12 @@ class TelnetObserver(Thread):
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        if self.loop_tn: self.loop_tn.close()
+        if self.tn:
+            self.tn.close()
         print "telnet-observer has been shut down"
 
-    def timeout_occurred(self, timeout_in_seconds, timeout_start):
+    @staticmethod
+    def timeout_occurred(timeout_in_seconds, timeout_start):
         if timeout_in_seconds != 0:
             if timeout_start is None:
                 timeout_start = time.time()

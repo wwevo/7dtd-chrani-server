@@ -7,11 +7,11 @@ from chrani_bot.telnet_cmd import TelnetCommand
 from chrani_bot.telnet_observer import TelnetObserver
 from chrani_bot.poll_players import PollPlayers
 from chrani_bot.setup import HOST, PORT, PASS
-import chrani_bot.rabaDB.Raba as R
+import chrani_bot.rabaDB.Raba as Rc
 import chrani_bot.rabaDB.fields as rf
 
 
-class Player(R.Raba):
+class Player(Rc.Raba):
     _raba_namespace = 'chrani_server'
 
     id = rf.Primitive()
@@ -38,7 +38,7 @@ class Player(R.Raba):
         pass
 
 
-class Location(R.Raba):
+class Location(Rc.Raba):
     _raba_namespace = 'chrani_server'
 
     owner = rf.RabaObject('Player')
