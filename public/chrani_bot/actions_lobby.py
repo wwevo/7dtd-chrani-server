@@ -25,12 +25,25 @@ def set_up_lobby(self, player, connection):
 actions_lobby["set up lobby"] = set_up_lobby
 
 
+def remove_lobby(self, player, connection):
+    if player.authenticated:
+        try:
+            location = self.Location(name='lobby')
+            location.delete()
+            connection.send_message(connection.tn, player.name + " said: Lobby, Be Gone!")
+        except KeyError:
+            connection.send_message(connection.tn, " no loby found oO")
+    else:
+        connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
+
+
+actions_lobby["make the lobby go away"] = remove_lobby
+
+
 def on_player_join(self, player, connection):
     """
-    ever newly logged in player will be handled here
-    players will be greeted, a spawn will be set for new players
     if the player is not authenticated, he will be ported to the lobby, if one is set
-    a prompt to enter the password will be displayed to unlock commands
+    a prompt to enter the password will be displayed on how to unlock commands otherwise
     :param player: player-object pulled from database
     :param connection: Telnet command object
     :return: nothing to return
@@ -81,4 +94,3 @@ def on_respawn_after_death(self, player, connection):
 
 
 actions_lobby["Died"] = on_respawn_after_death
-

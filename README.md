@@ -36,22 +36,24 @@ Send messages
 
     to the games chat
 
-Listen to chat commands (*The main loop*)
+Listen and react to telnet lines / chat commands (*The main loop*)
 
     should run and do nothing else but timeout (if set up),
-    listen to chat-commands and trigger their actions
+    listen to telnet lines / chat commands and trigger their actions
+    a list of already available commands can be found further down
+    write your own, it's easy!
 
-The player-poll
+The player-poll (background task)
 
     periodically scans for new players and stores the data in a sqlite3
-    database 
+    database
 
 together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting
 and setting up a home-zone for example
 
 **The following commands and actions are available at this time:**
 * greeting new players, welcoming back old ones
-* setting up a lobby (/set up lobby)
+* setting up a lobby (/set up lobby), and remove it again (/make the lobby go away)
     * new players will get ported to the lobby location
     * a command will allow them to get sent back to their original spawn (/password <password>)
     * players will be ported back to the lobby after death if they haven't entered the password
@@ -59,10 +61,12 @@ and setting up a home-zone for example
 * players can port back to their last place of death to retrieve their backpack (/man, where's my pack?)
 
 this code only has some exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
-a public server.
+a public server. I think. I am not good at these things :)
 
-code-base is tested on 100% vanilla server and one with Coppis + Botman. Not tested with any other mods.
+code-base is tested on a 100% vanilla server and one with Coppi's + Botman-Bot. Not tested with any other mods.
 also tested it with three instances of this bot connected to the same server by accident. it worked :) 
 
-coppis will be needed though as a lot of important features won't be available without it. like pm's and colored chat
-and in fact hidden chat-command. all of these are kinda required on a real world server :)
+Coppi's will be needed though as a lot of important features won't be available without it. like pm's and colored chat
+and in fact hidden chat-commands. all of these are kinda required on a real world server :) My testserver doesn't have
+this yet, but i'm in no rush and it shouldn't be too complicated to change / add functions to accommodate Coppi's
+Additions.

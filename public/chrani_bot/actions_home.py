@@ -7,8 +7,6 @@ def on_player_join(self, player, connection):
     """
     ever newly logged in player will be handled here
     players will be greeted, a spawn will be set for new players
-    if the player is not authenticated, he will be ported to the lobby, if one is set
-    a prompt to enter the password will be displayed to unlock commands
     :param player: player-object pulled from database
     :param connection: Telnet command object
     :return: nothing to return

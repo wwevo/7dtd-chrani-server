@@ -16,7 +16,7 @@ class TelnetObserver(Thread):
     tn_cmd = None  # telnetCommand class
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
-    actions = None
+    actions = None # methods stored in here will be executed by the loop!
 
     def __init__(self, event, tn, player, location, timeout = 0):
         self.tn_cmd = tn
