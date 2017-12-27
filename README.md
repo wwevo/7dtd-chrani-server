@@ -70,3 +70,6 @@ Coppi's will be needed though as a lot of important features won't be available 
 and in fact hidden chat-commands. all of these are kinda required on a real world server :) My testserver doesn't have
 this yet, but i'm in no rush and it shouldn't be too complicated to change / add functions to accommodate Coppi's
 Additions.
+
+I've thrown the mod in there and it hides commands for now. will not hide anything on a non-coppi'd server,
+it won't break anything either though
