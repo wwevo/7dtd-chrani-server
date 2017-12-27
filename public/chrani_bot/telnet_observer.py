@@ -72,73 +72,33 @@ class TelnetObserver(Thread):
             # i have several separate ones until i figure out how i can sort the regexp by name, because things like
             # playername can be in different positions, depending on the needed source
 
-            m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': /(.+)\r", response)
-            # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
-            # match chat messages
-            if m:
-                player_name = m.group(3)
-                player = self.Player(name=player_name)
-                connection = self.tn_cmd
-                command = m.group(4)
+            match_types = {}
+            match_types['chat_commands'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF Chat: \'(?P<player_name>.*)\': /(?P<command>.+)\r"
+            match_types['telnet_events_player'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF GMSG: Player '(?P<player_name>.*)' (?P<command>.*)\r"
+            match_types['telnet_event_playerspawn'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF PlayerSpawnedInWorld \(reason: (?P<command>.+?), .* PlayerName='(?P<player_name>.*)'\r"
 
-                if self.actions is not None:
-                    for action in self.actions:
-                        if action[0] == "isequal":
-                            temp_command = command
-                        if action[0] == "startswith":
-                            temp_command = command.split(' ', 1)[0]
+            for match_type in match_types:
+                m = re.search(match_types[match_type], response)
+                # match chat messages
+                if m:
+                    player_name = m.group('player_name')
+                    player = self.Player(name=player_name)
+                    connection = self.tn_cmd
+                    command = m.group('command')
 
-                        if action[1] == temp_command:
-                            print "action"
-                            function_matchtype = action[0]
-                            function_name = action[2]
-                            function_parameters = eval(action[3])
-                            function_name(*function_parameters)
+                    if self.actions is not None:
+                        for action in self.actions:
+                            if action[0] == "isequal":
+                                temp_command = command
+                            if action[0] == "startswith":
+                                temp_command = command.split(' ', 1)[0]
 
-            m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
-            # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
-            # player_events
-            if m:
-                player_name = m.group(3)
-                player = self.Player(name=player_name)
-                connection = self.tn_cmd
-                command = m.group(4)
-
-                if self.actions is not None:
-                    for action in self.actions:
-                        if action[0] == "isequal":
-                            temp_command = command
-                        if action[0] == "startswith":
-                            temp_command = command.split(' ', 1)[0]
-
-                        if action[1] == temp_command:
-                            print "action"
-                            function_matchtype = action[0]
-                            function_name = action[2]
-                            function_parameters = eval(action[3])
-                            function_name(*function_parameters)
-
-            m = re.search(r"^(.+?) (.+?) INF PlayerSpawnedInWorld \(reason: (.+?), .* PlayerName='(.*)'\r", response)
-            # group(1) = datetime, group(2) = stardate?, group(3) = reason of respawn (4) = player_name
-            if m:
-                player_name = m.group(4)
-                player = self.Player(name=player_name)
-                connection = self.tn_cmd
-                command = m.group(3)
-
-                if self.actions is not None:
-                    for action in self.actions:
-                        if action[0] == "isequal":
-                            temp_command = command
-                        if action[0] == "startswith":
-                            temp_command = command.split(' ', 1)[0]
-
-                        if action[1] == temp_command:
-                            print "action"
-                            function_matchtype = action[0]
-                            function_name = action[2]
-                            function_parameters = eval(action[3])
-                            function_name(*function_parameters)
+                            if action[1] == temp_command:
+                                print "action"
+                                function_matchtype = action[0]
+                                function_name = action[2]
+                                function_parameters = eval(action[3])
+                                function_name(*function_parameters)
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
