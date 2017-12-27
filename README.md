@@ -2,19 +2,21 @@
 
 **noob-coded python bot to control a 7 Days to Die game-server**
 
-installation should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create
-a passwords.txt file to configure your server, create a folder somewhere for the database. that should be it really 
-
 this is in no way a fully functional bot. it's a work in progress. let's call it Early Access ^^
+it already works though. you could use it for your small private server to make life easier there, having home commands
+and such. it survived a full day of running already. hasn't been tested on a larger server though, I have no idea what
+will happen when the server lags or simply has a lot of players on.  
 
-I will try to get this thing modular as much as possible, always depending on my current knowledge. the plan is to
-really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
-to new players it should only do things required to accomplish exactly that.
+##installation
+should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create
+a passwords.txt file to configure your server, create a folder somewhere for the database. that should be it really
 
-I've started to refactor the hell out of the code to make it unit-testable. not there yet, but it's getting there.
-I have also started on getting the functions out of the loop, to allow for dynamic loading of required / desired
-functions 
+the only thing you need is any 7dtd dedicated server and a console with access to python. it will work with any 7dtd
+server that has telnet enabled. no mods other than the Serverfixes and Coppi's are required for all the features.
+slimmed down, you could run it on any server really, you won't have the hide commands feature for example, so everyone
+could see what everyone else is typing :)   
 
+##current state
 *this is my very first project with python*, apart from the Hello World example, so a lot of stuff might take a lot of
 time for me, and I will not always hit the best methods of doing things I'm sure. feel free to comment on my code or
 even helping out with stuff.
@@ -51,7 +53,13 @@ The player-poll (background task)
 together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting
 and setting up a home-zone for example
 
-**The following commands and actions are available at this time:**
+assuming you have installed the Serverfixes and Coppi's mod:
+
+**here is a brief overview of what is working at this time**
+* the bot says hello when it is started. in color!
+* chat commands (anything start starts with /) will be supressed
+ 
+**the following commands and actions are available at this time:**
 * greeting new players, welcoming back old ones
 * setting up a lobby (/set up lobby), and remove it again (/make the lobby go away)
     * new players will get ported to the lobby location
@@ -60,16 +68,24 @@ and setting up a home-zone for example
 * players can set up a home and port back there (/make this my home && /take me home)
 * players can port back to their last place of death to retrieve their backpack (/man, where's my pack?)
 
+##known issues
 this code only has some exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
 a public server. I think. I am not good at these things :)
 
-code-base is tested on a 100% vanilla server and one with Coppi's + Botman-Bot. Not tested with any other mods.
-also tested it with three instances of this bot connected to the same server by accident. it worked :) 
+the way I inject the bot's actions into the main loop is insufficient. I need a much more flexible/magical way. can't
+even module out the password function cause it takes an extra parameter...
 
-Coppi's will be needed though as a lot of important features won't be available without it. like pm's and colored chat
-and in fact hidden chat-commands. all of these are kinda required on a real world server :) My testserver doesn't have
-this yet, but i'm in no rush and it shouldn't be too complicated to change / add functions to accommodate Coppi's
-Additions.
+#will it run?
+code-base is tested on
+* a16.4 100% vanilla server 
+* a16.4 server with Coppi's + Botman-Bot.
+* tested it with three instances of this bot connected to the same server by accident 
 
-I've thrown the mod in there and it hides commands for now. will not hide anything on a non-coppi'd server,
-it won't break anything either though
+##future
+I will try to get this thing modular as much as possible, always depending on my current python knowledge. the plan is to
+really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
+to new players it should only do things required to accomplish exactly that.
+
+I've started to refactor the hell out of the code to make it unit-testable. not there yet, but it's getting there.
+I have also started on getting the functions out of the loop, to allow for dynamic loading of required / desired
+functions -> this is almost done. I need a more elegant way though
