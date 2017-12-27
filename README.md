@@ -72,7 +72,8 @@ assuming you have installed the Serverfixes and Coppi's mod:
 * setting up a lobby (/set up lobby), and remove it again (/make the lobby go away)
     * new players will get ported to the lobby location
     * a command will allow them to get sent back to their original spawn (/password <password>)
-    * players will be ported back to the lobby after death if they haven't entered the password
+    * players will be ported back to the lobby after death, if they haven't entered the password
+    * players will be ported back to the lobby if they try to leave it, if they haven't entered the password
 * players can set up a home and port back there (/make this my home && /take me home)
 * players can port back to their last place of death to retrieve their backpack (/man, where's my pack?)
 

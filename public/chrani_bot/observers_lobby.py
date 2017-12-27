@@ -9,15 +9,13 @@ def player_left_area(self, connection):
     except KeyError:
         return
 
-    f = RabaQuery(self.Player)
-    f.addFilter(authenticated=None)
-
     center_x = float(location.pos_x)
     center_y = float(location.pos_z)
-    radius = float(10)
+    radius = float(7.5)
 
+    f = RabaQuery(self.Player)
     for player in f.run():
-        if ((float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > radius ** 2):
+        if player.authenticated != 1 and ((float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > radius ** 2):
             connection.send_message(connection.tn, "And stay there!")
             teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(location.pos_x))) + " " + str(
                 int(float(location.pos_y))) + " " + str(int(float(location.pos_z))) + "\r\n"
@@ -35,17 +33,13 @@ def player_approaching_boundary_from_inside(self, connection):
     except KeyError:
         return
 
-    f = RabaQuery(self.Player)
-    f.addFilter(authenticated=None)
-    if not f:
-        return
-
     center_x = float(location.pos_x)
     center_y = float(location.pos_z)
     radius = float(7.5)
 
+    f = RabaQuery(self.Player)
     for player in f.run():
-        if not (float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > radius ** 2 and ((float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > (radius - 2.5) ** 2):
+        if player.authenticated != 1 and not (float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > radius ** 2 and ((float(player.pos_x) - center_x) ** 2 + (float(player.pos_z) - center_y) ** 2 > (radius - 2.5) ** 2):
             connection.send_message(connection.tn, "get your ass back in the lobby or else")
 
 

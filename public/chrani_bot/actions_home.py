@@ -85,7 +85,10 @@ def password(self, player, command, connection):
                                             player.name + " joined the ranks of literate people. Welcome!")
                     player.authenticated = True
         else:
+            player.authenticated = None
             connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
+
+        player.save()
 
 
 actions_home.append(("startswith", "password", password, "(self, player, command, connection,)"))
