@@ -18,6 +18,7 @@ class TelnetObserver(Thread):
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
     actions = None  # methods stored in here will be executed by the loop!
+    match_types = None
     loop_waiting_time = 1
 
     def __init__(self, event, tn, player, location, timeout = 0):
@@ -68,22 +69,15 @@ class TelnetObserver(Thread):
 
             profiling_start = time.time()
 
-            # set up the different regexp to filter out commands and shit
-            # i have several separate ones until i figure out how i can sort the regexp by name, because things like
-            # playername can be in different positions, depending on the needed source
-
-            match_types = {}
-            match_types['chat_commands'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF Chat: \'(?P<player_name>.*)\': /(?P<command>.+)\r"
-            match_types['telnet_events_player'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF GMSG: Player '(?P<player_name>.*)' (?P<command>.*)\r"
-            match_types['telnet_event_playerspawn'] = r"^(?P<datetime>.+?) (?P<stardate>.+?) INF PlayerSpawnedInWorld \(reason: (?P<command>.+?), .* PlayerName='(?P<player_name>.*)'\r"
-
-            for match_type in match_types:
-                m = re.search(match_types[match_type], response)
+            # match types need to be set in the main file of this script and then injected
+            # unless you don't want the bot to do anything at all :)
+            for match_type in self.match_types:
+                m = re.search(self.match_types[match_type], response)
                 # match chat messages
                 if m:
                     player_name = m.group('player_name')
-                    player = self.Player(name=player_name)
-                    connection = self.tn_cmd
+                    player = self.Player(name=player_name)  # used in the eval further down!!
+                    connection = self.tn_cmd  # used in the eval further down!!
                     command = m.group('command')
 
                     if self.actions is not None:
@@ -97,7 +91,7 @@ class TelnetObserver(Thread):
                                 print "action"
                                 function_matchtype = action[0]
                                 function_name = action[2]
-                                function_parameters = eval(action[3])
+                                function_parameters = eval(action[3])  # yes. Eval. It's my own data, chill out!
                                 function_name(*function_parameters)
 
             profiling_end = time.time()

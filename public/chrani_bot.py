@@ -57,15 +57,19 @@ class Location(Rc.Raba):
         pass
 
 
+match_types = {
+    'chat_commands': r"^(?P<datetime>.+?) (?P<stardate>.+?) INF Chat: \'(?P<player_name>.*)\': /(?P<command>.+)\r",
+    'telnet_events_player': r"^(?P<datetime>.+?) (?P<stardate>.+?) INF GMSG: Player '(?P<player_name>.*)' (?P<command>.*)\r",
+    'telnet_events_playerspawn': r"^(?P<datetime>.+?) (?P<stardate>.+?) INF PlayerSpawnedInWorld \(reason: (?P<command>.+?), .* PlayerName='(?P<player_name>.*)'\r"}
+
 if __name__ == '__main__':
     """
     mandatory thread! all other threads will be shut down if this one is missing  
     """
     telnet_observer_event = Event()
     telnet_observer_thread = TelnetObserver(telnet_observer_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    telnet_observer_thread.match_types = match_types
     telnet_observer_thread.actions = actions_lobby + actions_perks + actions_home
-    # telnet_observer_thread.actions = merge_dicts(actions_lobby)
-
     telnet_observer_thread.start()
 
     """
