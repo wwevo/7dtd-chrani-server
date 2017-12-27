@@ -1,13 +1,14 @@
 # 7dtd-chrani-server
 
 **noob-coded python bot to control a 7 Days to Die game-server**
-(active project, last change on dec 2017)
+
+*(active project, last change on dec 2017)*
 
 this is in no way a fully functional bot. it's a work in progress. let's call it Early Access ^^
 it already works though. you could use it for your small private server to make life easier there, having home commands
 and such.  
 
-##installation
+## installation
 should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create
 a passwords.txt file to configure your server, create a folder somewhere for the database. that should be it really
 
@@ -16,7 +17,7 @@ server that has telnet enabled. no mods other than the Serverfixes and Coppi's a
 slimmed down, you could run it on any server really, you won't have the hide commands feature for example, so everyone
 could see what everyone else is typing :)   
 
-##current state
+## current state
 *this is my very first project with python*, apart from the Hello World example, so a lot of stuff might take a lot of
 time for me, and I will not always hit the best methods of doing things I'm sure. feel free to comment on my code or
 even helping out with stuff.
