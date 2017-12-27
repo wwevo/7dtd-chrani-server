@@ -64,6 +64,8 @@ if __name__ == '__main__':
     telnet_observer_event = Event()
     telnet_observer_thread = TelnetObserver(telnet_observer_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
     telnet_observer_thread.actions = merge_dicts(actions_lobby, actions_perks, actions_home)
+    # telnet_observer_thread.actions = merge_dicts(actions_lobby)
+
     telnet_observer_thread.start()
 
     """

@@ -1,4 +1,5 @@
 from tools import Dictlist
+import re
 
 actions_lobby = Dictlist()
 
@@ -22,7 +23,7 @@ def set_up_lobby(self, player, connection):
                                 player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_lobby["set up lobby"] = set_up_lobby
+actions_lobby["set up lobby"] = (set_up_lobby, "(self, player, connection)")
 
 
 def remove_lobby(self, player, connection):
@@ -37,7 +38,7 @@ def remove_lobby(self, player, connection):
         connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_lobby["make the lobby go away"] = remove_lobby
+actions_lobby["make the lobby go away"] = (remove_lobby, "(self, player, connection)")
 
 
 def on_player_join(self, player, connection):
@@ -68,7 +69,7 @@ def on_player_join(self, player, connection):
             connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
 
 
-actions_lobby["joined the game"] = on_player_join
+actions_lobby["joined the game"] = (on_player_join, "(self, player, connection)")
 
 
 def on_respawn_after_death(self, player, connection):
@@ -93,4 +94,31 @@ def on_respawn_after_death(self, player, connection):
             pass
 
 
-actions_lobby["Died"] = on_respawn_after_death
+actions_lobby["Died"] = (on_respawn_after_death, "(self, player, connection)")
+
+
+def password(self, player, command, connection):
+    p = re.search(r"password (.+)", command)
+    if p:
+        password = p.group(1)
+        if password == "openup":
+            # print "correct password!!"
+            if not player.authenticated:
+                try:
+                    location = self.Location(name='lobby')
+                    try:
+                        location = self.Location(owner=player, name='spawn')
+                        pos_x = location.pos_x
+                        pos_y = location.pos_y
+                        pos_z = location.pos_z
+                        teleport_command = "teleportplayer " + player.steamid + " " + str(
+                            int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                        print teleport_command
+                        connection.tn.write(teleport_command)
+                    except KeyError:
+                        connection.send_message(connection.tn, player.name + " has no place of origin it seems")
+                except KeyError:
+                    pass
+
+
+actions_lobby["password"] = (password, "(self, player, command, connection,)")

@@ -1,3 +1,4 @@
+import re
 from tools import Dictlist
 
 actions_home = Dictlist()
@@ -25,7 +26,7 @@ def on_player_join(self, player, connection):
         connection.send_message(connection.tn, "this servers bot says Hi to " + player.name + " o/")
 
 
-actions_home["joined the game"] = on_player_join
+actions_home["joined the game"] = (on_player_join, "(self, player, connection,)")
 
 
 def make_this_my_home(self, player, connection):
@@ -47,7 +48,7 @@ def make_this_my_home(self, player, connection):
         connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_home["make this my home"] = make_this_my_home
+actions_home["make this my home"] = (make_this_my_home, "(self, player, connection,)")
 
 
 def take_me_home(self, player, connection):
@@ -69,4 +70,23 @@ def take_me_home(self, player, connection):
                                 player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_home["take me home"] = take_me_home
+actions_home["take me home"] = (take_me_home, "(self, player, connection,)")
+
+
+def password(self, player, command, connection):
+    p = re.search(r"password (.+)", command)
+    if p:
+        password = p.group(1)
+        if password == "openup":
+            # print "correct password!!"
+            if player.authenticated:
+                connection.send_message(connection.tn, player.name + ", we trust you already <3")
+            else:
+                    connection.send_message(connection.tn,
+                                            player.name + " joined the ranks of literate people. Welcome!")
+                    player.authenticated = True
+        else:
+            connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
+
+
+actions_home["password"] = (password, "(self, player, command, connection,)")

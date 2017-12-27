@@ -2,6 +2,7 @@ import re
 from threading import Thread, Event
 from rabaDB.rabaSetup import *
 import atexit
+# from tools import parse_tuple
 
 
 class TelnetObserver(Thread):
@@ -16,7 +17,7 @@ class TelnetObserver(Thread):
     tn_cmd = None  # telnetCommand class
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
-    actions = None # methods stored in here will be executed by the loop!
+    actions = None  # methods stored in here will be executed by the loop!
     loop_waiting_time = 1
 
     def __init__(self, event, tn, player, location, timeout = 0):
@@ -44,35 +45,6 @@ class TelnetObserver(Thread):
                 print "scheduled timeout occurred after {0} seconds".format(str(int(elapsed_time)))
                 return True
         return None
-
-    def password(self, player, command, connection):
-        p = re.search(r"password (.+)", command)
-        if p:
-            password = p.group(1)
-            if password == "openup":
-                # print "correct password!!"
-                if player.authenticated:
-                    connection.send_message(connection.tn, player.name + ", we trust you already <3")
-                else:
-                    try:
-                        location = self.Location(name='lobby')
-                        try:
-                            location = self.Location(owner=player, name='spawn')
-                            pos_x = location.pos_x
-                            pos_y = location.pos_y
-                            pos_z = location.pos_z
-                            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                            print teleport_command
-                            connection.tn.write(teleport_command)
-                        except KeyError:
-                            connection.send_message(connection.tn, player.name + " has no place of origin it seems")
-                    except KeyError:
-                        pass
-                    finally:
-                        connection.send_message(connection.tn, player.name + " joined the ranks of literate people. Welcome!")
-                        player.authenticated = True
-            else:
-                connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
 
     def run(self):
         """
@@ -102,23 +74,28 @@ class TelnetObserver(Thread):
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
+                connection = self.tn_cmd
                 command = m.group(4)
 
                 if command is not None:
-                    actions = self.actions.get(command)
+                    if command.startswith("password "):
+                        temp_command = command.split(' ', 1)[0]
+                    else:
+                        temp_command = command
+                    actions = self.actions.get(temp_command)
                     if actions is not None:
                         for action in actions:
                             print "action"
-                            action[0](self, player, self.tn_cmd)
-
-                if command.startswith("password "):
-                    self.password(player, command, self.tn_cmd)
+                            function_name = action[0][0]
+                            function_parameters = eval(action[0][1])
+                            function_name(*function_parameters)
 
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
             # player_events
             if m:
                 player_name = m.group(3)
                 player = self.Player(name=player_name)
+                connection = self.tn_cmd
                 command = m.group(4)
 
                 if command is not None:
@@ -126,20 +103,26 @@ class TelnetObserver(Thread):
                     if actions is not None:
                         for action in actions:
                             print "action"
-                            action[0](self, player, self.tn_cmd)
+                            function_name = action[0][0]
+                            function_parameters = eval(action[0][1])
+                            function_name(*function_parameters)
+
 
             m = re.search(r"^(.+?) (.+?) INF PlayerSpawnedInWorld \(reason: (.+?), .* PlayerName='(.*)'\r", response)
             if m:
-                command = m.group(3)
                 player_name = m.group(4)
                 player = self.Player(name=player_name)
+                connection = self.tn_cmd
+                command = m.group(3)
 
                 if command is not None:
                     actions = self.actions.get(command)
                     if actions is not None:
                         for action in actions:
                             print "action"
-                            action[0](self, player, self.tn_cmd)
+                            function_name = action[0][0]
+                            function_parameters = eval(action[0][1])
+                            function_name(*function_parameters)
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start

@@ -3,7 +3,7 @@ from tools import Dictlist
 actions_perks = Dictlist()
 
 
-def on_player_death(self, player, connection):
+def on_player_death(self, player):
     """
     saves location of the last death for a later return
     :param player: player-object
@@ -22,7 +22,7 @@ def on_player_death(self, player, connection):
     location.save()
 
 
-actions_perks["died"] = on_player_death
+actions_perks["died"] = (on_player_death, "(self, player,)")
 
 
 def on_respawn_after_death(self, player, connection):
@@ -36,7 +36,7 @@ def on_respawn_after_death(self, player, connection):
         connection.send_message(connection.tn, "type /man, where's my pack? in this chat to return to your backpack!")
 
 
-actions_perks["Died"] = on_respawn_after_death
+actions_perks["Died"] = (on_respawn_after_death, "(self, player, connection,)")
 
 
 def man_where_is_my_pack(self, player, connection):
@@ -56,6 +56,6 @@ def man_where_is_my_pack(self, player, connection):
         connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_perks["man, where's my pack?"] = man_where_is_my_pack
+actions_perks["man, where's my pack?"] = (man_where_is_my_pack, "(self, player, connection,)")
 
 
