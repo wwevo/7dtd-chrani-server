@@ -1,11 +1,11 @@
 # 7dtd-chrani-server
 
 **noob-coded python bot to control a 7 Days to Die game-server**
+(active project, last change on dec 2017)
 
 this is in no way a fully functional bot. it's a work in progress. let's call it Early Access ^^
 it already works though. you could use it for your small private server to make life easier there, having home commands
-and such. it survived a full day of running already. hasn't been tested on a larger server though, I have no idea what
-will happen when the server lags or simply has a lot of players on.  
+and such.  
 
 ##installation
 should be just a matter of installing python 2.7, dropping this script somewhere and execute it. do create
@@ -81,6 +81,9 @@ code-base is tested on
 * a16.4 server with Coppi's + Botman-Bot.
 * tested it with three instances of this bot connected to the same server by accident 
 
+it survived a full day of running already. hasn't been tested on a larger server though, I have no idea what
+will happen when the server lags or simply has a lot of players on.
+
 ##future
 I will try to get this thing modular as much as possible, always depending on my current python knowledge. the plan is to
 really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
@@ -89,3 +92,6 @@ to new players it should only do things required to accomplish exactly that.
 I've started to refactor the hell out of the code to make it unit-testable. not there yet, but it's getting there.
 I have also started on getting the functions out of the loop, to allow for dynamic loading of required / desired
 functions -> this is almost done. I need a more elegant way though
+
+since I am currently, effectively alone on this project, I have to work on all fronts at once. only way for me to do
+it without losing interest altogether :)  
