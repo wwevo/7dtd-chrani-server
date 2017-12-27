@@ -7,14 +7,16 @@ import chrani_bot.rabaDB.fields as rf
 # these are the actual bot-modules :
 from chrani_bot.setup import HOST, PORT, PASS
 from chrani_bot.telnet_cmd import TelnetCommand
-from chrani_bot.tools import merge_dicts
 # threads and observers
 from chrani_bot.telnet_observer import TelnetObserver
+from chrani_bot.player_observer import PlayerObserver
 from chrani_bot.poll_players import PollPlayers
 # here come the actions
 from chrani_bot.actions_lobby import actions_lobby
 from chrani_bot.actions_backpack import actions_perks
 from chrani_bot.actions_home import actions_home
+# here come the actions
+from chrani_bot.observers_lobby import observers_lobby
 
 
 class Player(Rc.Raba):
@@ -81,3 +83,8 @@ if __name__ == '__main__':
     player_poll_loop_thread = PollPlayers(player_poll_loop_event, TelnetCommand(HOST, PORT, PASS), Player)
     player_poll_loop_thread.setDaemon(True)  # thread get's shut down when all non daemon threads have ended
     player_poll_loop_thread.start()
+
+    player_observer_loop_event = Event()
+    player_observer_loop_thread = PlayerObserver(player_observer_loop_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    player_observer_loop_thread.observers = observers_lobby
+    player_observer_loop_thread.start()

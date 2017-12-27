@@ -1,5 +1,3 @@
-from tools import Dictlist
-
 actions_perks = []
 
 

@@ -1,5 +1,4 @@
 import re
-from tools import Dictlist
 
 actions_home = []
 

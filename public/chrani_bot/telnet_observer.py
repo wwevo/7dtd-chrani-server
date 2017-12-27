@@ -2,15 +2,15 @@ import re
 from threading import Thread, Event
 from rabaDB.rabaSetup import *
 import atexit
-# from tools import parse_tuple
+from tools import timeout_occurred
 
 
 class TelnetObserver(Thread):
     """
     for now this loop observes all telnet activity and acts on it.
-    in the future, it will get all match-strings and their handlers passed in by the constructor so we can
-    chose which functions we want. there will be no sanity checks, the admin has to know which commands
-    require others
+    it is getingt all match-strings and their handlers passed in by the constructor so we can
+    chose which functions we want. there will be no sanity checks, the admin needs to know which commands
+    require others for now
     """
     Player = None  # will hold the players rabaDB object
     Location = None  # will hold the locations rabaDB object
@@ -36,17 +36,6 @@ class TelnetObserver(Thread):
             self.tn.close()
         print "telnet-observer has been shut down"
 
-    @staticmethod
-    def timeout_occurred(timeout_in_seconds, timeout_start):
-        if timeout_in_seconds != 0:
-            if timeout_start is None:
-                timeout_start = time.time()
-            elapsed_time = time.time() - timeout_start
-            if elapsed_time >= timeout_in_seconds:
-                print "scheduled timeout occurred after {0} seconds".format(str(int(elapsed_time)))
-                return True
-        return None
-
     def run(self):
         """
         I'm throwing everything in here I can think of
@@ -59,7 +48,7 @@ class TelnetObserver(Thread):
         self.tn_cmd.togglechatcommandhide(self.tn, "/")
         self.tn_cmd.send_message(self.tn, "[FFD700]Hi there. Command me![-]")
         script_start = time.time()
-        while not self.stopped.wait(self.loop_waiting_time) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
+        while not self.stopped.wait(self.loop_waiting_time) and not timeout_occurred(self.timeout_in_seconds, script_start):
             # calling this every second for testing
             try:
                 response = self.tn.read_until(b"\r\n", 2)

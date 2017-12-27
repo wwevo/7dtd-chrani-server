@@ -2,6 +2,7 @@ import atexit
 import telnetlib
 import time
 import re
+from tools import timeout_occurred
 
 
 class TelnetCommand:
@@ -46,14 +47,15 @@ class TelnetCommand:
     def send_message(connection, message):
         response = None
         send_message_response_raw = ""
-
         connection.write("say \"" + message + b"\"\r\n")
-        #while send_message_response_raw == "" or response:
-            #response = connection.read_until(b"\r\n")
-            #send_message_response_raw = send_message_response_raw + response
 
-            #if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(re.sub(r"\[.*?\]", "", message)) + "\r", response) is not None:
-            #    return True
+        # timeout_start = time.time()
+        # while send_message_response_raw == "" or response and not timeout_occurred(2, timeout_start):
+        #     response = connection.read_until(b"\r\n")
+        #     send_message_response_raw = send_message_response_raw + response
+        #
+        #     if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(re.sub(r"\[.*?\]", "", message)) + "\r", response) is not None:
+        #         return True
 
     @staticmethod
     def togglechatcommandhide(connection, prefix):
@@ -62,10 +64,11 @@ class TelnetCommand:
         command = "tcch " + prefix + b"\r\n"
         connection.write(command)
 
-        #while send_message_response_raw == "" or response:
-            #response = connection.read_until(b"\r\n")
-            #send_message_response_raw = send_message_response_raw + response
-
-            #if re.match(r"^Prefix \"" + prefix + "\" defined for chat commands\r", response) is not None:
-            #    return True
+        # timeout_start = time.time()
+        # while send_message_response_raw == "" or response and not timeout_occurred(2, timeout_start):
+        #     response = connection.read_until(b"\r\n")
+        #     send_message_response_raw = send_message_response_raw + response
+        #
+        #     if re.match(r"^Prefix \"" + prefix + "\" defined for chat commands\r", response) is not None:
+        #         return True
 
