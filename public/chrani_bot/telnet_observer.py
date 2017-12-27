@@ -17,6 +17,7 @@ class TelnetObserver(Thread):
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
     actions = None # methods stored in here will be executed by the loop!
+    loop_waiting_time = 1
 
     def __init__(self, event, tn, player, location, timeout = 0):
         self.tn_cmd = tn
@@ -49,25 +50,27 @@ class TelnetObserver(Thread):
         if p:
             password = p.group(1)
             if password == "openup":
-                print "correct password!!"
+                # print "correct password!!"
                 if player.authenticated:
                     connection.send_message(connection.tn, player.name + ", we trust you already <3")
                 else:
                     try:
-                        location = self.Location(owner=player, name='spawn')
-                        pos_x = location.pos_x
-                        pos_y = location.pos_y
-                        pos_z = location.pos_z
-                        teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(
-                            int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                        print teleport_command
-                        connection.tn.write(teleport_command)
-                        connection.send_message(connection.tn, player.name + " joined the ranks of literate people. Welcome!")
+                        location = self.Location(name='lobby')
+                        try:
+                            location = self.Location(owner=player, name='spawn')
+                            pos_x = location.pos_x
+                            pos_y = location.pos_y
+                            pos_z = location.pos_z
+                            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
+                            print teleport_command
+                            connection.tn.write(teleport_command)
+                        except KeyError:
+                            connection.send_message(connection.tn, player.name + " has no place of origin it seems")
                     except KeyError:
-                        connection.send_message(connection.tn, player.name + " has no place of origin it seems")
+                        pass
                     finally:
+                        connection.send_message(connection.tn, player.name + " joined the ranks of literate people. Welcome!")
                         player.authenticated = True
-
             else:
                 connection.send_message(connection.tn, player.name + " has entered a wrong password oO!")
 
@@ -80,11 +83,17 @@ class TelnetObserver(Thread):
         into the loop somehow
         """
         print "bot is ready and listening"
-        # self.tn_cmd.send_message(self.tn, "Hi there. Command me!")
+        #self.tn_cmd.togglechatcommandhide(self.tn, "/")
+        self.tn_cmd.send_message(self.tn, "[FFD700]Hi there. Command me![-]")
         script_start = time.time()
-        while not self.stopped.wait(1) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
+        while not self.stopped.wait(self.loop_waiting_time) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
             # calling this every second for testing
-            response = self.tn.read_until(b"\r\n", 2)
+            try:
+                response = self.tn.read_until(b"\r\n", 2)
+                self.loop_waiting_time = 1
+            except Exception:
+                self.loop_waiting_time = 5
+
             profiling_start = time.time()
 
             # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command

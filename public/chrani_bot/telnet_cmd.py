@@ -52,5 +52,18 @@ class TelnetCommand:
             response = connection.read_until(b"\r\n")
             send_message_response_raw = send_message_response_raw + response
 
-            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(message) + "\r", response) is not None:
+            if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(re.sub(r"\[.*?\]", "", message)) + "\r", response) is not None:
+                return True
+
+    @staticmethod
+    def togglechatcommandhide(connection, prefix):
+        response = None
+        send_message_response_raw = ""
+        command = "tcch " + prefix + b"\r\n"
+        connection.write(command)
+        while send_message_response_raw == "" or response:
+            response = connection.read_until(b"\r\n")
+            send_message_response_raw = send_message_response_raw + response
+
+            if re.match(r"^Prefix \"" + prefix + "\" defined for chat commands\r", response) is not None:
                 return True
