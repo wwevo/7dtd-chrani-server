@@ -69,14 +69,14 @@ assuming you have installed the Serverfixes and Coppi's mod:
 * players can set up a home and port back there (/make this my home && /take me home)
 * players can port back to their last place of death to retrieve their backpack (/man, where's my pack?)
 
-##known issues
+### known issues
 this code only has some exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
 a public server. I think. I am not good at these things :)
 
 the way I inject the bot's actions into the main loop is insufficient. I need a much more flexible/magical way. can't
 even module out the password function cause it takes an extra parameter...
 
-#will it run?
+### will it run?
 code-base is tested on
 * a16.4 100% vanilla server 
 * a16.4 server with Coppi's + Botman-Bot.
@@ -85,7 +85,7 @@ code-base is tested on
 it survived a full day of running already. hasn't been tested on a larger server though, I have no idea what
 will happen when the server lags or simply has a lot of players on.
 
-##future
+## future
 I will try to get this thing modular as much as possible, always depending on my current python knowledge. the plan is to
 really only have to use the functions desired and leave out all others if you wish. if you just want it to say hello
 to new players it should only do things required to accomplish exactly that.
