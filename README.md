@@ -73,8 +73,8 @@ assuming you have installed the Serverfixes and Coppi's mod:
 this code only has some exception checking and also almost ZERO security / sanity checks. this is in NO WAY ready for
 a public server. I think. I am not good at these things :)
 
-the way I inject the bot's actions into the main loop is insufficient. I need a much more flexible/magical way. can't
-even module out the password function cause it takes an extra parameter...
+the way I inject the bot's actions into the main loop may be insufficient. I'd like a much more flexible/magical way.
+It does work the they it should, but it looks like garbage ^^
 
 ### will it run?
 code-base is tested on

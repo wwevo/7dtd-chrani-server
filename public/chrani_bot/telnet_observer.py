@@ -55,7 +55,7 @@ class TelnetObserver(Thread):
         into the loop somehow
         """
         print "bot is ready and listening"
-        #self.tn_cmd.togglechatcommandhide(self.tn, "/")
+        self.tn_cmd.togglechatcommandhide(self.tn, "/")
         self.tn_cmd.send_message(self.tn, "[FFD700]Hi there. Command me![-]")
         script_start = time.time()
         while not self.stopped.wait(self.loop_waiting_time) and not self.timeout_occurred(self.timeout_in_seconds, script_start):
@@ -68,8 +68,12 @@ class TelnetObserver(Thread):
 
             profiling_start = time.time()
 
-            # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
+            # set up the different regexp to filter out commands and shit
+            # i have several separate ones until i figure out how i can sort the regexp by name, because things like
+            # playername can be in different positions, depending on the needed source
+
             m = re.search(r"^(.+?) (.+?) INF Chat: \'(.*)\': /(.+)\r", response)
+            # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
             # match chat messages
             if m:
                 player_name = m.group(3)
@@ -77,20 +81,22 @@ class TelnetObserver(Thread):
                 connection = self.tn_cmd
                 command = m.group(4)
 
-                if command is not None:
-                    if command.startswith("password "):
-                        temp_command = command.split(' ', 1)[0]
-                    else:
-                        temp_command = command
-                    actions = self.actions.get(temp_command)
-                    if actions is not None:
-                        for action in actions:
+                if self.actions is not None:
+                    for action in self.actions:
+                        if action[0] == "isequal":
+                            temp_command = command
+                        if action[0] == "startswith":
+                            temp_command = command.split(' ', 1)[0]
+
+                        if action[1] == temp_command:
                             print "action"
-                            function_name = action[0][0]
-                            function_parameters = eval(action[0][1])
+                            function_matchtype = action[0]
+                            function_name = action[2]
+                            function_parameters = eval(action[3])
                             function_name(*function_parameters)
 
             m = re.search(r"^(.+?) (.+?) INF GMSG: Player '(.*)' (.*)\r", response)
+            # group(1) = datetime, group(2) = stardate?, group(3) = player_name group(4) = bot command
             # player_events
             if m:
                 player_name = m.group(3)
@@ -98,30 +104,40 @@ class TelnetObserver(Thread):
                 connection = self.tn_cmd
                 command = m.group(4)
 
-                if command is not None:
-                    actions = self.actions.get(command)
-                    if actions is not None:
-                        for action in actions:
+                if self.actions is not None:
+                    for action in self.actions:
+                        if action[0] == "isequal":
+                            temp_command = command
+                        if action[0] == "startswith":
+                            temp_command = command.split(' ', 1)[0]
+
+                        if action[1] == temp_command:
                             print "action"
-                            function_name = action[0][0]
-                            function_parameters = eval(action[0][1])
+                            function_matchtype = action[0]
+                            function_name = action[2]
+                            function_parameters = eval(action[3])
                             function_name(*function_parameters)
 
-
             m = re.search(r"^(.+?) (.+?) INF PlayerSpawnedInWorld \(reason: (.+?), .* PlayerName='(.*)'\r", response)
+            # group(1) = datetime, group(2) = stardate?, group(3) = reason of respawn (4) = player_name
             if m:
                 player_name = m.group(4)
                 player = self.Player(name=player_name)
                 connection = self.tn_cmd
                 command = m.group(3)
 
-                if command is not None:
-                    actions = self.actions.get(command)
-                    if actions is not None:
-                        for action in actions:
+                if self.actions is not None:
+                    for action in self.actions:
+                        if action[0] == "isequal":
+                            temp_command = command
+                        if action[0] == "startswith":
+                            temp_command = command.split(' ', 1)[0]
+
+                        if action[1] == temp_command:
                             print "action"
-                            function_name = action[0][0]
-                            function_parameters = eval(action[0][1])
+                            function_matchtype = action[0]
+                            function_name = action[2]
+                            function_parameters = eval(action[3])
                             function_name(*function_parameters)
 
             profiling_end = time.time()

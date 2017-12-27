@@ -1,7 +1,7 @@
 from tools import Dictlist
 import re
 
-actions_lobby = Dictlist()
+actions_lobby = []
 
 
 def set_up_lobby(self, player, connection):
@@ -23,7 +23,7 @@ def set_up_lobby(self, player, connection):
                                 player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_lobby["set up lobby"] = (set_up_lobby, "(self, player, connection)")
+actions_lobby.append(("isequal", "set up lobby", set_up_lobby, "(self, player, connection)"))
 
 
 def remove_lobby(self, player, connection):
@@ -38,7 +38,7 @@ def remove_lobby(self, player, connection):
         connection.send_message(connection.tn, player.name + " needs to enter the password to get access to sweet commands!")
 
 
-actions_lobby["make the lobby go away"] = (remove_lobby, "(self, player, connection)")
+actions_lobby.append(("isequal", "make the lobby go away", remove_lobby, "(self, player, connection)"))
 
 
 def on_player_join(self, player, connection):
@@ -69,7 +69,7 @@ def on_player_join(self, player, connection):
             connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
 
 
-actions_lobby["joined the game"] = (on_player_join, "(self, player, connection)")
+actions_lobby.append(("isequal", "joined the game", on_player_join, "(self, player, connection)"))
 
 
 def on_respawn_after_death(self, player, connection):
@@ -94,7 +94,7 @@ def on_respawn_after_death(self, player, connection):
             pass
 
 
-actions_lobby["Died"] = (on_respawn_after_death, "(self, player, connection)")
+actions_lobby.append(("isequal", "Died", on_respawn_after_death, "(self, player, connection)"))
 
 
 def password(self, player, command, connection):
@@ -121,4 +121,4 @@ def password(self, player, command, connection):
                     pass
 
 
-actions_lobby["password"] = (password, "(self, player, command, connection,)")
+actions_lobby.append(("startswith", "password", password, "(self, player, command, connection,)"))
