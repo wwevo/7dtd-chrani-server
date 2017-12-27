@@ -51,14 +51,21 @@ The player-poll (background task)
     periodically scans for new players and stores the data in a sqlite3
     database
 
+The player-observer (background task)
+
+    we know EVERYTHING ABOUT YOU!
+
 together with player-positions and chat commands, we are free to develop bot-functions like conditional teleporting
-and setting up a home-zone for example
+and setting up a home-zone for example. with the new player-observer, we can do real time tracking of players,
+keeping them in the lobby for example
 
 assuming you have installed the Serverfixes and Coppi's mod:
 
 **here is a brief overview of what is working at this time**
 * the bot says hello when it is started. in color!
 * chat commands (anything start starts with /) will be supressed
+* the lobby, if it has been set, will keep unauthorized players inside,
+  porting them back if they try to leave
  
 **the following commands and actions are available at this time:**
 * greeting new players, welcoming back old ones
@@ -80,6 +87,7 @@ It does work the they it should, but it looks like garbage ^^
 code-base is tested on
 * a16.4 100% vanilla server 
 * a16.4 server with Coppi's + Botman-Bot.
+* tested on a local windows install and Coppi's
 * tested it with three instances of this bot connected to the same server by accident 
 
 it survived a full day of running already. hasn't been tested on a larger server though, I have no idea what
@@ -92,7 +100,7 @@ to new players it should only do things required to accomplish exactly that.
 
 I've started to refactor the hell out of the code to make it unit-testable. not there yet, but it's getting there.
 I have also started on getting the functions out of the loop, to allow for dynamic loading of required / desired
-functions -> this is almost done. I need a more elegant way though
+functions -> this is almost done. I might need a more elegant way though
 
 since I am currently, effectively alone on this project, I have to work on all fronts at once. only way for me to do
 it without losing interest altogether :)  
