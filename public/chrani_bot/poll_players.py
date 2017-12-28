@@ -10,6 +10,7 @@ class PollPlayers(Thread):
     tn = None
     poll_frequency = 2
     poll_players_response_time = 0  # record the runtime of the entire poll
+    online_players = {}
 
     class PlayerList(Thread):
         """
@@ -18,6 +19,8 @@ class PollPlayers(Thread):
         """
         poll_players_raw = None
         poll_players_array = None
+        online_players = {}
+        online_player = []
 
         def __init__(self, event, list_players_raw, player):
             self.Player = player
@@ -60,6 +63,8 @@ class PollPlayers(Thread):
                 player.ping = m.group(18)
                 player.save()
 
+                self.online_players.update({m.group(16): True})
+
     def __init__(self, event, tn, player):
         self.tn_cmd = tn
         self.tn = self.tn_cmd.tn
@@ -79,7 +84,7 @@ class PollPlayers(Thread):
         time between executions
         """
         print "poll-players loop is ready and listening"
-        next_poll = 0
+        next_poll = 0  # first poll need not wait darling!
         while not self.stopped.wait(next_poll):
             """
             basically an endless loop
@@ -92,6 +97,7 @@ class PollPlayers(Thread):
             store_player_list_event = Event()
             store_player_list_thread = self.PlayerList(store_player_list_event, list_players_raw, self.Player)
             store_player_list_thread.start()
+            self.online_players = store_player_list_thread.online_players
             next_poll = self.poll_frequency - self.poll_players_response_time
             print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
 

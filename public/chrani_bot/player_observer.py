@@ -22,9 +22,12 @@ class PlayerObserver(Thread):
     Location = None  # will hold the locations rabaDB object
 
     observers = None
+    player_poll_loop_thread = None
 
-    def __init__(self, event, tn, player, location, timeout=0):
+    def __init__(self, event, player_poll_loop_thread, tn, player, location, timeout=0):
         self.timeout_in_seconds = timeout
+
+        self.player_poll_loop_thread = player_poll_loop_thread
 
         self.tn_cmd = tn
         self.tn = self.tn_cmd.tn

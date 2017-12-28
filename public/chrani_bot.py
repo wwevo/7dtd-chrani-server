@@ -85,6 +85,6 @@ if __name__ == '__main__':
     player_poll_loop_thread.start()
 
     player_observer_loop_event = Event()
-    player_observer_loop_thread = PlayerObserver(player_observer_loop_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    player_observer_loop_thread = PlayerObserver(player_observer_loop_event, player_poll_loop_thread, TelnetCommand(HOST, PORT, PASS), Player, Location)
     player_observer_loop_thread.observers = observers_lobby
     player_observer_loop_thread.start()
