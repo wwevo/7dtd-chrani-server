@@ -70,6 +70,7 @@ class PollPlayers(Thread):
                 """
                 try:
                     player = self.Player(steamid=steamid)
+                    self.online_players[steamid].update({"authenticated": player.authenticated})
                 except KeyError:
                     player = self.Player()
 
@@ -91,8 +92,7 @@ class PollPlayers(Thread):
                 player.steamid = online_player["steamid"]
                 player.ip = online_player["ip"]
                 player.ping = online_player["ping"]
-                # self.online_players[steamid].update({"authenticated": player.authenticated})
-                #player.save()
+                player.save()
 
         def update(self, poll_players_raw):
             """
