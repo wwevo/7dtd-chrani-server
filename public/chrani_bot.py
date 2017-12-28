@@ -54,6 +54,7 @@ class Location(Rc.Raba):
     pos_x = rf.Primitive()
     pos_y = rf.Primitive()
     pos_z = rf.Primitive()
+    radius = rf.Primitive()
 
     def __init__(self):
         pass

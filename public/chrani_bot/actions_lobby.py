@@ -1,3 +1,4 @@
+import math
 import re
 
 actions_lobby = []
@@ -14,15 +15,40 @@ def set_up_lobby(self, player, connection):
         location.pos_x = player.pos_x
         location.pos_y = player.pos_y
         location.pos_z = player.pos_z
+        location.radius = 10
         location.save()
 
-        connection.send_message(connection.tn, player.name + " has set up a lobby. Good job!")
+        connection.send_message(connection.tn, player.name + " has set up a lobby. Good job! set up the perimeter (default is 10 blocks) with /set up lobby perimeter, while standing on the edge of it.")
     else:
         connection.send_message(connection.tn,
                                 player.name + " needs to enter the password to get access to sweet commands!")
 
 
 actions_lobby.append(("isequal", "set up lobby", set_up_lobby, "(self, player, connection)"))
+
+
+def set_up_lobby_perimeter(self, player, connection):
+    if player.authenticated:
+        try:
+            location = self.Location(name='lobby')
+        except KeyError:
+            location = self.Location()
+            location.name = 'lobby'
+
+        location.radius = float(
+            math.sqrt(
+                (float(location.pos_x) - float(player.pos_x)) ** 2 + (float(location.pos_y) - float(player.pos_y)) ** 2 + (float(location.pos_z) - float(player.pos_z)) ** 2)
+            )
+
+        location.save()
+
+        connection.send_message(connection.tn, player.name + " lobby ends here!")
+    else:
+        connection.send_message(connection.tn,
+                                player.name + " needs to enter the password to get access to sweet commands!")
+
+
+actions_lobby.append(("isequal", "set up lobby perimeter", set_up_lobby_perimeter, "(self, player, connection)"))
 
 
 def remove_lobby(self, player, connection):

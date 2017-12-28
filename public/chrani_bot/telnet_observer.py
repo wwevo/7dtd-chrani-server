@@ -48,13 +48,13 @@ class TelnetObserver(Thread):
         self.tn_cmd.togglechatcommandhide(self.tn, "/")
         self.tn_cmd.send_message(self.tn, "[FFD700]Hi there. Command me![-]")
         script_start = time.time()
-        while not self.stopped.wait(self.loop_waiting_time) and not timeout_occurred(self.timeout_in_seconds, script_start):
+        next_observation = 0
+        while not self.stopped.wait(next_observation) and not timeout_occurred(self.timeout_in_seconds, script_start):
             # calling this every second for testing
             try:
                 response = self.tn.read_until(b"\r\n", 2)
-                self.loop_waiting_time = 1
             except Exception:
-                self.loop_waiting_time = 5
+                self.loop_waiting_time = 10
 
             profiling_start = time.time()
 
@@ -85,5 +85,6 @@ class TelnetObserver(Thread):
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
+            next_observation = self.loop_waiting_time - profiling_time
             print "telnet-observer is alive ({0} bytes received, execution-time: {1} seconds)".format(str(len(response)), str(round(profiling_time, 3)).ljust(5, '0'))
         self.stopped.set()

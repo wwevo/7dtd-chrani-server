@@ -13,7 +13,7 @@ class PlayerObserver(Thread):
     require others
     """
     timeout_in_seconds = 0  # stop script after (timeout) seconds, regardless of activity
-    loop_waiting_time = 2  # time to wait between loops
+    loop_waiting_time = 1  # time to wait between loops
 
     tn = None  # telnet socket for convenience (could simply use tn_cmd.tn)
     tn_cmd = None  # telnetCommand class
@@ -57,7 +57,8 @@ class PlayerObserver(Thread):
         print "playerobserver is ready! READAAAAY!!"
         self.tn_cmd.send_message(self.tn, "[FFD700]We are watching you![-]")
         script_start = time.time()
-        while not self.stopped.wait(self.loop_waiting_time) and not timeout_occurred(self.timeout_in_seconds, script_start):
+        next_observation = 0
+        while not self.stopped.wait(next_observation) and not timeout_occurred(self.timeout_in_seconds, script_start):
             profiling_start = time.time()
 
             if self.observers is not None:
@@ -69,5 +70,6 @@ class PlayerObserver(Thread):
 
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
+            next_observation = self.loop_waiting_time - profiling_time
             print "player-observer is alive (execution-time: {0} seconds)".format(str(round(profiling_time, 3)).ljust(5, '0'))
         self.stopped.set()
