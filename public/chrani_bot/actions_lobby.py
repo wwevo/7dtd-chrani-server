@@ -114,6 +114,7 @@ def password(self, player, command, connection):
                             int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
                         print teleport_command
                         connection.tn.write(teleport_command)
+                        location.delete()
                     except KeyError:
                         connection.send_message(connection.tn, player.name + " has no place of origin it seems")
                 except KeyError:

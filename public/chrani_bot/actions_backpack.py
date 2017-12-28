@@ -48,6 +48,7 @@ def man_where_is_my_pack(self, player, connection):
             # print teleport_command
             connection.tn.write(teleport_command)
             connection.send_message(connection.tn, player.name + " is laaaaazy :)")
+            location.delete()
         except KeyError:
             connection.send_message(connection.tn, player.name + " believes to have died, but didn't oO")
     else:
