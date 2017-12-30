@@ -64,6 +64,23 @@ class TelnetCommand:
         #         return True
 
     @staticmethod
+    def teleport_player(connection, steamid, location):
+        response = None
+        teleport_player_response_raw = ""
+        try:
+            connection.write("teleportplayer " + steamid + " " + str(int(float(location.pos_x))) + " " + str(int(float(location.pos_y))) + " " + str(int(float(location.pos_z))) + b"\r\n")
+        except:
+            return False
+
+        # timeout_start = time.time()
+        # while send_message_response_raw == "" or response and not timeout_occurred(2, timeout_start):
+        #     response = connection.read_until(b"\r\n")
+        #     send_message_response_raw = send_message_response_raw + response
+        #
+        #     if re.match(r"^(.+?) (.+?) INF Chat: \'.*\':.* " + re.escape(re.sub(r"\[.*?\]", "", message)) + "\r", response) is not None:
+        #         return True
+
+    @staticmethod
     def togglechatcommandhide(connection, prefix):
         response = None
         send_message_response_raw = ""

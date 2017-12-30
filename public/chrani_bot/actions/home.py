@@ -54,13 +54,7 @@ def take_me_home(self, player, connection):
     if player.authenticated:
         try:
             location = self.Location(owner=player, name='home')
-            pos_x = location.pos_x
-            pos_y = location.pos_y
-            pos_z = location.pos_z
-            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(
-                int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-            # print teleport_command
-            connection.tn.write(teleport_command)
+            connection.teleport_player(connection.tn, player.steamid, location)
             connection.send_message(connection.tn, player.name + " got homesick")
         except KeyError:
             connection.send_message(connection.tn, player.name + " is apparently homeless...")
@@ -77,7 +71,6 @@ def password(self, player, command, connection):
     if p:
         password = p.group(1)
         if password == "openup":
-            # print "correct password!!"
             if player.authenticated:
                 connection.send_message(connection.tn, player.name + ", we trust you already <3")
             else:

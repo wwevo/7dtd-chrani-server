@@ -41,12 +41,7 @@ def man_where_is_my_pack(self, player, connection):
     if player.authenticated:
         try:
             location = self.Location(owner=player, name='backpack')
-            pos_x = location.pos_x
-            pos_y = location.pos_y
-            pos_z = location.pos_z
-            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-            # print teleport_command
-            connection.tn.write(teleport_command)
+            connection.teleport_player(connection.tn, player.steamid, location)
             connection.send_message(connection.tn, player.name + " is laaaaazy :)")
             location.delete()
         except KeyError:

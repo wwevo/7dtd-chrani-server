@@ -23,7 +23,7 @@ if __name__ == '__main__':
     host, port, password = get_bot_config(
         setup_config_file(
             "../private/config.txt"),
-        "dummy",  # dummy might be the local running test-server ^^
+        "hoop",  # dummy might be the local running test-server ^^
         "chrani_server"
     )
 

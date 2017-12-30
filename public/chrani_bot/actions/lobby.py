@@ -77,17 +77,11 @@ def on_player_join(self, player, connection):
     if not player.authenticated:
         try:
             location = self.Location(name='lobby')
-            pos_x = location.pos_x
-            pos_y = location.pos_y
-            pos_z = location.pos_z
             connection.send_message(connection.tn,
                                     "yo ass will be ported to our lobby plus tha command-shit is restricted yo")
             connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
             connection.send_message(connection.tn, "enter the password with /password <password> in this chat")
-            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(
-                int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-            print teleport_command
-            connection.tn.write(teleport_command)
+            connection.teleport_player(connection.tn, player.steamid, location)
         except KeyError:
             connection.send_message(connection.tn, "your account is restricted until you have read the rules")
             connection.send_message(connection.tn, "read the rules on https://chrani.net/rules")
@@ -108,12 +102,7 @@ def on_respawn_after_death(self, player, connection):
     if not player.authenticated:
         try:
             location = self.Location(name='lobby')
-            pos_x = location.pos_x
-            pos_y = location.pos_y
-            pos_z = location.pos_z
-            teleport_command = "teleportplayer " + player.steamid + " " + str(int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-            # print teleport_command
-            self.tn.write(teleport_command)
+            connection.teleport_player(connection.tn, player.steamid, location)
             connection.send_message(connection.tn, "there is no escape from the lobby!")
         except KeyError:
             pass
@@ -133,16 +122,10 @@ def password(self, player, command, connection):
                     location = self.Location(name='lobby')
                     try:
                         location = self.Location(owner=player, name='spawn')
-                        pos_x = location.pos_x
-                        pos_y = location.pos_y
-                        pos_z = location.pos_z
-                        teleport_command = "teleportplayer " + player.steamid + " " + str(
-                            int(float(pos_x))) + " " + str(int(float(pos_y))) + " " + str(int(float(pos_z))) + "\r\n"
-                        print teleport_command
-                        connection.tn.write(teleport_command)
+                        connection.teleport_player(connection.tn, player.steamid, location)
                         location.delete()
                     except KeyError:
-                        connection.send_message(connection.tn, player.name + " has no place of origin it seems")
+                        connection.send_message(connection.tn, player.name + " could not find your place of birth!")
                 except KeyError:
                     pass
 

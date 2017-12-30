@@ -1,5 +1,6 @@
 import time
 
+
 def timeout_occurred(timeout_in_seconds, timeout_start):
     if timeout_in_seconds != 0:
         if timeout_start is None:
@@ -10,4 +11,8 @@ def timeout_occurred(timeout_in_seconds, timeout_start):
             return True
     return None
 
+
+class ObjectView(object):
+    def __init__(self, d):
+        self.__dict__ = d
 
