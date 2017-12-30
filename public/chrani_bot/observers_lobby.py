@@ -6,9 +6,9 @@ observers_lobby = []
 def player_left_area(self, connection):
     try:
         location = self.Location(name='lobby')
-        try:
+        if location.radius is not None:
             radius = float(location.radius)
-        except AttributeError:
+        else:
             radius = 10
     except KeyError:
         return
@@ -42,9 +42,9 @@ observers_lobby.append(("player left lobby", player_left_area, "(self, connectio
 def player_approaching_boundary_from_inside(self, connection):
     try:
         location = self.Location(name='lobby')
-        try:
+        if location.radius is not None:
             radius = float(location.radius)
-        except AttributeError:
+        else:
             radius = 10
     except KeyError:
         return
@@ -60,7 +60,7 @@ def player_approaching_boundary_from_inside(self, connection):
                             float(location.pos_z) - float(player["pos_z"])) ** 2))
 
                 if distance_to_lobby_center >= (radius / 2) and distance_to_lobby_center <= radius:
-                    connection.send_message(connection.tn, "get your ass back in the lobby or else")
+                    connection.send_message(connection.tn, "get your ass back in the lobby or else (" + str(abs(distance_to_lobby_center)) + ")")
         except KeyError:
             return
 
