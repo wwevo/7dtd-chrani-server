@@ -38,16 +38,22 @@ class TelnetCommand:
     @staticmethod
     def authenticate(connection, telnet_pass):
         # this is the exact prompt from the games telnet. it might change with a new game-version
-        connection.read_until("Please enter password:")
-        connection.write(telnet_pass.encode('ascii') + b"\r\n")
-        # last 'welcome' line from the games telnet. it might change with a new game-version
-        return connection.read_until("Press 'exit' to end session.")
+        try:
+            connection.read_until("Please enter password:")
+            connection.write(telnet_pass.encode('ascii') + b"\r\n")
+            # last 'welcome' line from the games telnet. it might change with a new game-version
+            return connection.read_until("Press 'exit' to end session.")
+        except:
+            return False
 
     @staticmethod
     def send_message(connection, message):
         response = None
         send_message_response_raw = ""
-        connection.write("say \"" + message + b"\"\r\n")
+        try:
+            connection.write("say \"" + message + b"\"\r\n")
+        except:
+            return False
 
         # timeout_start = time.time()
         # while send_message_response_raw == "" or response and not timeout_occurred(2, timeout_start):
@@ -62,7 +68,10 @@ class TelnetCommand:
         response = None
         send_message_response_raw = ""
         command = "tcch " + prefix + b"\r\n"
-        connection.write(command)
+        try:
+            connection.write(command)
+        except:
+            return False
 
         # timeout_start = time.time()
         # while send_message_response_raw == "" or response and not timeout_occurred(2, timeout_start):

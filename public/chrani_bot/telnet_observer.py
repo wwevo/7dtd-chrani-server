@@ -45,7 +45,7 @@ class TelnetObserver(Thread):
         into the loop somehow
         """
         print "bot is ready and listening"
-        self.tn_cmd.togglechatcommandhide(self.tn, "/")
+        # self.tn_cmd.togglechatcommandhide(self.tn, "/")
         self.tn_cmd.send_message(self.tn, "[FFD700]Hi there. Command me![-]")
         script_start = time.time()
         next_observation = 0

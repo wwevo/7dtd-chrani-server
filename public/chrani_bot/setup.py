@@ -1,12 +1,24 @@
 import ConfigParser  # only needed for fancy config import
 from rabaDB.rabaSetup import *
 
-config = ConfigParser.ConfigParser()
-config.read("../private/passwords.txt")
 
-bot_suffix = "dummy"
-HOST = config.get("telnet_" + bot_suffix, "telnet_host")
-PORT = config.get("telnet_" + bot_suffix, "telnet_port")
-PASS = config.get("telnet_" + bot_suffix, "telnet_pass")
+def setup_config_file(config_file):
+    config = ConfigParser.ConfigParser()
+    try:
+        config.read(config_file)
+    except:
+        return False
 
-RabaConfiguration('chrani_server', '../private/db/' + bot_suffix + '.db')
+    return config
+
+
+def get_bot_config(config, bot_name="dummy", namespace="chrani_server"):
+    try:
+        host = config.get("telnet_" + bot_name, "telnet_host")
+        port = config.get("telnet_" + bot_name, "telnet_port")
+        password = config.get("telnet_" + bot_name, "telnet_pass")
+    except:
+        return False
+
+    RabaConfiguration(namespace, '../private/db/' + bot_name + '.db')
+    return host, port, password
