@@ -8,15 +8,15 @@ import chrani_bot.rabaDB.fields as rf
 from chrani_bot.setup import setup_config_file, get_bot_config
 from chrani_bot.telnet_cmd import TelnetCommand
 # threads and observers
-from chrani_bot.telnet_observer import TelnetObserver
-from chrani_bot.player_observer import PlayerObserver
-from chrani_bot.poll_players import PollPlayers
+from chrani_bot.threads.telnet_actions import TelnetObserver
+from chrani_bot.threads.player_worker import PollPlayers
+from chrani_bot.threads.player_actions import PlayerObserver
 # here come the actions
-from chrani_bot.actions_lobby import actions_lobby
-from chrani_bot.actions_backpack import actions_perks
-from chrani_bot.actions_home import actions_home
+from chrani_bot.actions.lobby import actions_lobby
+from chrani_bot.actions.backpack import actions_perks
+from chrani_bot.actions.home import actions_home
 # here come the actions
-from chrani_bot.observers_lobby import observers_lobby
+from chrani_bot.observers.lobby import observers_lobby
 
 
 if __name__ == '__main__':
