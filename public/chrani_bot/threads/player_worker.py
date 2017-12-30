@@ -5,11 +5,13 @@ from public.chrani_bot.rabaDB.rabaSetup import *
 import atexit
 
 
-class PollPlayers(Thread):
+class PlayerWorker(Thread):
     tn_cmd = None
     tn = None
     poll_frequency = 2
     poll_players_response_time = 0  # record the runtime of the entire poll
+    print_status_frequency_loop_count = 0  # iterations of the loop
+    print_status_frequency = 10  # print status every <print_status_frequency> loop
     online_players = {}
 
     class PlayerData(Thread):
@@ -121,30 +123,6 @@ class PollPlayers(Thread):
             self.tn.close()
         print "poll-players loop has been shut down"
 
-    def run(self):
-        """
-        recorded the runtime of the poll, using it to calculate the exact wait
-        time between executions
-        """
-        print "poll-players loop is ready and listening"
-        next_poll = 0  # first poll need not wait darling!
-        while not self.stopped.wait(next_poll):
-            """
-            basically an endless loop
-            fresh player-data is about the most important thing for this bot :)
-            """
-            list_players_raw, player_count = self.poll_players()
-
-            # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
-            # actual server-transaction won't be delayed
-            store_player_list_event = Event()
-            store_player_list_thread = self.PlayerData(store_player_list_event, list_players_raw, self.Player)
-            store_player_list_thread.start()
-            store_player_list_thread.join()  # dang, took me two hours to find out this is needed ^^
-            self.online_players = store_player_list_thread.online_players
-            next_poll = self.poll_frequency - self.poll_players_response_time
-            print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
-
     def poll_players(self):
         """
         polls live player data from the games telnet
@@ -174,3 +152,30 @@ class PollPlayers(Thread):
         except:
             return None, None
 
+    def run(self):
+        """
+        recorded the runtime of the poll, using it to calculate the exact wait
+        time between executions
+        """
+        next_poll = 0  # first poll need not wait darling!
+        while not self.stopped.wait(next_poll):
+            """
+            basically an endless loop
+            fresh player-data is about the most important thing for this bot :)
+            """
+            list_players_raw, player_count = self.poll_players()
+
+            # not sure if this is the way to go, but I wanted to have this in it's own thread so the time spend in the
+            # actual server-transaction won't be delayed
+            store_player_list_event = Event()
+            store_player_list_thread = self.PlayerData(store_player_list_event, list_players_raw, self.Player)
+            store_player_list_thread.start()
+            store_player_list_thread.join()  # dang, took me two hours to find out this is needed ^^
+
+            self.online_players = store_player_list_thread.online_players
+            next_poll = self.poll_frequency - self.poll_players_response_time
+
+            if self.print_status_frequency_loop_count == self.print_status_frequency or self.print_status_frequency_loop_count == 0:
+                self.print_status_frequency_loop_count = 0
+                print "player-data poll is active ({0} players, {1} bytes received, response-time: {2} seconds)".format(str(player_count), str(len(list_players_raw)), str(round(self.poll_players_response_time, 3)).ljust(5, '0'))
+            self.print_status_frequency_loop_count += 1

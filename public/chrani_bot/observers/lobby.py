@@ -15,7 +15,6 @@ def player_left_area(self, connection):
 
     online_players = self.player_poll_loop_thread.online_players
     for steamid, player in online_players.iteritems():
-        print player
         try:
             # player = self.Player(steamid=steamid)
             if player["authenticated"] != 1:

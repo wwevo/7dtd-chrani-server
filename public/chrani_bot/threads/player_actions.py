@@ -5,7 +5,7 @@ import atexit
 from public.chrani_bot.tools import timeout_occurred
 
 
-class PlayerObserver(Thread):
+class PlayerActions(Thread):
     """
     for now this loop observes all player activity and acts on it.
     in the future, it will get all match-strings and their handlers passed in by the constructor so we can
@@ -20,6 +20,9 @@ class PlayerObserver(Thread):
 
     Player = None  # will hold the players rabaDB object
     Location = None  # will hold the locations rabaDB object
+
+    print_status_frequency_loop_count = 0  # iterations of the loop
+    print_status_frequency = 10  # print status every <print_status_frequency> loop
 
     observers = None
     player_poll_loop_thread = None
@@ -71,5 +74,10 @@ class PlayerObserver(Thread):
             profiling_end = time.time()
             profiling_time = profiling_end - profiling_start
             next_observation = self.loop_waiting_time - profiling_time
-            print "player-observer is alive (execution-time: {0} seconds)".format(str(round(profiling_time, 3)).ljust(5, '0'))
+
+            if self.print_status_frequency_loop_count == self.print_status_frequency or self.print_status_frequency_loop_count == 0:
+                self.print_status_frequency_loop_count = 0
+                print "player-observer is alive (execution-time: {0} seconds)".format(str(round(profiling_time, 3)).ljust(5, '0'))
+            self.print_status_frequency_loop_count += 1
+
         self.stopped.set()

@@ -8,9 +8,9 @@ import chrani_bot.rabaDB.fields as rf
 from chrani_bot.setup import setup_config_file, get_bot_config
 from chrani_bot.telnet_cmd import TelnetCommand
 # threads and observers
-from chrani_bot.threads.telnet_actions import TelnetObserver
-from chrani_bot.threads.player_worker import PollPlayers
-from chrani_bot.threads.player_actions import PlayerObserver
+from chrani_bot.threads.telnet_actions import TelnetActions
+from chrani_bot.threads.player_worker import PlayerWorker
+from chrani_bot.threads.player_actions import PlayerActions
 # here come the actions
 from chrani_bot.actions.lobby import actions_lobby
 from chrani_bot.actions.backpack import actions_perks
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     mandatory thread! all other threads will be shut down if this one is missing  
     """
     telnet_observer_event = Event()
-    telnet_observer_thread = TelnetObserver(telnet_observer_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    telnet_observer_thread = TelnetActions(telnet_observer_event, TelnetCommand(HOST, PORT, PASS), Player, Location)
     telnet_observer_thread.match_types = match_types
     telnet_observer_thread.actions = actions_lobby + actions_perks + actions_home
     telnet_observer_thread.start()
@@ -92,11 +92,11 @@ if __name__ == '__main__':
     this needs some planning, will be required before we start with big additions though 
     """
     player_poll_loop_event = Event()
-    player_poll_loop_thread = PollPlayers(player_poll_loop_event, TelnetCommand(HOST, PORT, PASS), Player)
+    player_poll_loop_thread = PlayerWorker(player_poll_loop_event, TelnetCommand(HOST, PORT, PASS), Player)
     player_poll_loop_thread.setDaemon(True)  # thread get's shut down when all non daemon threads have ended
     player_poll_loop_thread.start()
 
     player_observer_loop_event = Event()
-    player_observer_loop_thread = PlayerObserver(player_observer_loop_event, player_poll_loop_thread, TelnetCommand(HOST, PORT, PASS), Player, Location)
+    player_observer_loop_thread = PlayerActions(player_observer_loop_event, player_poll_loop_thread, TelnetCommand(HOST, PORT, PASS), Player, Location)
     player_observer_loop_thread.observers = observers_lobby
     player_observer_loop_thread.start()
