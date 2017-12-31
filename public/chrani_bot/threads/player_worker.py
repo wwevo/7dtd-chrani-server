@@ -1,7 +1,6 @@
-
 import re
 from threading import Thread, Event
-from public.chrani_bot.rabaDB.rabaSetup import *
+from ..rabaDB.rabaSetup import *
 import atexit
 
 

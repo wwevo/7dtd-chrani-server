@@ -1,5 +1,5 @@
 import math
-from public.chrani_bot.tools import ObjectView
+from ..tools import ObjectView
 observers_lobby = []
 
 

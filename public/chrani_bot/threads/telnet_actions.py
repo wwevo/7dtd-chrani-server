@@ -1,8 +1,8 @@
 import re
 from threading import Thread, Event
-from public.chrani_bot.rabaDB.rabaSetup import *
+from ..rabaDB.rabaSetup import *
 import atexit
-from public.chrani_bot.tools import timeout_occurred
+from ..tools import timeout_occurred
 
 
 class TelnetActions(Thread):
