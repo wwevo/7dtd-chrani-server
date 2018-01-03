@@ -2,7 +2,14 @@
 
 **noob-coded python bot to control a 7 Days to Die game-server**
 
-*(active project, last change on dec 2017)*
+*(abandoned project, last change on jan 2018)*
+
+    due to some misconceptions and spaghetti-code, I've ran into several walls. feel free to use this code as a starting
+    point or whatever, a lot of stuff works already.
+    I'm sure a seasoned programmer can salvage this pretty quickly ^^
+
+    Based on my experiences with this, I will start fresh :)
+
 
 this is only in some ways a functional bot. it's a work in progress. let's call it Early Access ^^
 All functions it provides work, and they don't crash so far. You could use it up for your small private server to

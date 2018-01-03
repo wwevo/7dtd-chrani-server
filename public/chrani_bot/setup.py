@@ -7,7 +7,7 @@ def setup_config_file(config_file):
     try:
         config.read(config_file)
     except:
-        return False
+        pass
 
     return config
 
@@ -18,7 +18,7 @@ def get_bot_config(config, bot_name="dummy", namespace="chrani_server"):
         port = config.get("telnet_" + bot_name, "telnet_port")
         password = config.get("telnet_" + bot_name, "telnet_pass")
     except:
-        return False
+        pass
 
     RabaConfiguration(namespace, '../private/db/' + bot_name + '.db')
     return host, port, password

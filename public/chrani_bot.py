@@ -20,12 +20,8 @@ from chrani_bot.observers.lobby import observers_lobby
 
 
 if __name__ == '__main__':
-    host, port, password = get_bot_config(
-        setup_config_file(
-            "../private/config.txt"),
-        "dummy",  # dummy might be the local running test-server ^^
-        "chrani_server"
-    )
+    config = setup_config_file("../private/config.txt")
+    host, port, password = get_bot_config(config, "dummy", "chrani_server")
 
     HOST = host
     PORT = port

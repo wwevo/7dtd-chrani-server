@@ -56,6 +56,7 @@ class TelnetActions(Thread):
             try:
                 response = self.tn.read_until(b"\r\n", 2)
             except Exception:
+                response = "\r\n"
                 self.loop_waiting_time = 10
 
             profiling_start = time.time()

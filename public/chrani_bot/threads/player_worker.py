@@ -2,6 +2,7 @@ import re
 from threading import Thread, Event
 from ..rabaDB.rabaSetup import *
 import atexit
+from ..tools import deep_update
 
 
 class PlayerWorker(Thread):
@@ -36,6 +37,8 @@ class PlayerWorker(Thread):
         @staticmethod
         def lp_response_raw_to_dict(poll_players_raw):
             online_players_dict = {}
+            if poll_players_raw is None:
+                poll_players_raw = ""
             player_line_regexp = r"\d{1,2}. id=(\d+), ([\w+]+), pos=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), rot=\((.?\d+.\d), (.?\d+.\d), (.?\d+.\d)\), remote=(\w+), health=(\d+), deaths=(\d+), zombies=(\d+), players=(\d+), score=(\d+), level=(\d+), steamid=(\d+), ip=(\d+\.\d+\.\d+\.\d+), ping=(\d+)\n*"
             for m in re.finditer(player_line_regexp, poll_players_raw):
                 """
@@ -60,7 +63,6 @@ class PlayerWorker(Thread):
                     "steamid": m.group(16),
                     "ip": m.group(17),
                     "ping": m.group(18),
-                    "authenticated": None
                 }})
             return online_players_dict
 
@@ -106,7 +108,7 @@ class PlayerWorker(Thread):
             :return:
             :alters: player_poll_loop_thread.online_players
             """
-            self.online_players = self.lp_response_raw_to_dict(poll_players_raw)  # "local copy"
+            deep_update(self.online_players, self.lp_response_raw_to_dict(poll_players_raw))  # "local copy"
             self.save_dict_to_db(self.online_players)  # store in db. We might only want to do this every x cycle
 
     def __init__(self, event, tn, player):
@@ -149,7 +151,7 @@ class PlayerWorker(Thread):
                     self.poll_players_response_time = time.time() - profile_timestamp_start
                     return list_players_response_raw, player_count
         except:
-            return None, None
+            return "", 0
 
     def run(self):
         """
